@@ -87,9 +87,31 @@ export default function VideoShare({ videoId, videoTitle }: VideoShareProps) {
   // 复制链接到剪贴板
   const handleCopyLink = async (shareUrl: string) => {
     try {
-      await navigator.clipboard.writeText(shareUrl);
-      // 这里可以添加一个toast通知
-      alert('链接已复制到剪贴板');
+      // 检查是否支持 Clipboard API
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        alert('链接已复制到剪贴板');
+      } else {
+        // 回退到传统的复制方法
+        const textArea = document.createElement('textarea');
+        textArea.value = shareUrl;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+          document.execCommand('copy');
+          alert('链接已复制到剪贴板');
+        } catch (err) {
+          console.error('Failed to copy using fallback method:', err);
+          alert('复制失败，请手动复制链接');
+        } finally {
+          document.body.removeChild(textArea);
+        }
+      }
     } catch (error) {
       console.error('Failed to copy link:', error);
       alert('复制失败，请手动复制链接');
