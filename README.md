@@ -211,27 +211,6 @@ docker-compose exec backend sh
 
 > 🛠️ **Development Details**: For complete development guide, debugging methods, database migrations, please see [DEPLOYMENT.md](./DEPLOYMENT.md)
 
-## 🔮 Future Roadmap
-
-### Short-term Plans
-- [ ] Batch upload functionality
-- [ ] Video transcoding quality selection
-- [ ] User quota management
-- [ ] Basic system monitoring
-
-### Medium-term Plans
-- [ ] Redis queue to replace memory queue
-- [ ] Multi-media format support (audio, images)
-- [ ] Advanced permission management
-- [ ] RESTful API improvements
-
-### Long-term Plans
-- [ ] Microservices architecture transformation
-- [ ] Cloud storage integration
-- [ ] CDN acceleration support
-- [ ] Cluster deployment support
-- [ ] Complete monitoring and logging system
-
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
