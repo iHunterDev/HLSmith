@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: hlsmith-backend
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - FRONTEND_URL=http://localhost:3000
+      - BASE_URL=http://localhost:3001
+      - STORAGE_PATH=/app/storage
+      - DB_PATH=/app/storage/database.sqlite
+      - UPLOAD_MAX_SIZE=2147483648
+      - MAX_CONCURRENT=2
+      - FFMPEG_TIMEOUT=1800000
+      - ALLOW_REGISTRATION=true
+      - ALLOW_FIRST_ADMIN_REGISTRATION=true
+      - JWT_SECRET=CHANGE-THIS-TO-A-STRONG-RANDOM-SECRET-IN-PRODUCTION
+    volumes:
+      - ./storage:/app/storage
+    restart: unless-stopped
+    networks:
+      - hlsmith-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: hlsmith-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - hlsmith-network
+
+networks:
+  hlsmith-network:
+    driver: bridge
