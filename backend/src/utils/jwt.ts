@@ -7,6 +7,8 @@ if (!JWT_SECRET) {
   throw new Error('JWT_SECRET environment variable is required. Please set a strong, randomly generated secret.');
 }
 
+const jwtSecret: string = JWT_SECRET;
+
 export interface JWTPayload {
   id: number;
   email: string;
@@ -18,13 +20,16 @@ export interface AuthRequest extends Request {
 }
 
 export function generateToken(payload: JWTPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '30d' });
+  return jwt.sign(payload, jwtSecret, { expiresIn: '30d' });
 }
 
 export function verifyToken(token: string): JWTPayload | null {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    return decoded;
+    const decoded = jwt.verify(token, jwtSecret);
+    if (typeof decoded === 'object' && decoded !== null && 'id' in decoded && 'email' in decoded && 'username' in decoded) {
+      return decoded as JWTPayload;
+    }
+    return null;
   } catch (error) {
     return null;
   }
