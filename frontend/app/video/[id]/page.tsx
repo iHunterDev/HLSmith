@@ -7,7 +7,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import VideoPlayer from '@/components/video/VideoPlayer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { videoApi } from '@/lib/api';
+import { videoApi } from '@/api/video';
 import { Video, VideoStatus } from '@/lib/types';
 
 interface VideoPageProps {

@@ -9,6 +9,7 @@ import {
   UploadSession,
   ResumeUploadInfo
 } from './types';
+import { chunkedUploadApi } from '../api/upload';
 
 const DEFAULT_OPTIONS: Required<ChunkedUploadOptions> = {
   chunkSize: 5 * 1024 * 1024, // 5MB
@@ -32,13 +33,11 @@ export class ChunkedUploadManager {
   private startTime: number = 0;
   private isPaused: boolean = false;
   private isCancelled: boolean = false;
-  private baseUrl: string;
 
   constructor(file: File, title: string, options: ChunkedUploadOptions = {}) {
     this.file = file;
     this.title = title;
     this.options = { ...DEFAULT_OPTIONS, ...options };
-    this.baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
   }
 
   public async start(): Promise<void> {
@@ -157,25 +156,7 @@ export class ChunkedUploadManager {
       chunkSize: this.options.chunkSize
     };
 
-    const response = await fetch(`${this.baseUrl}/api/upload/init`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      },
-      body: JSON.stringify(request)
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to initialize upload: ${response.statusText}`);
-    }
-
-    const result = await response.json();
-    if (!result.success) {
-      throw new Error(result.message || 'Failed to initialize upload');
-    }
-
-    const uploadSession: InitChunkedUploadResponse = result.data;
+    const uploadSession: InitChunkedUploadResponse = await chunkedUploadApi.initChunkedUpload(request);
     this.uploadId = uploadSession.id;
     this.uploadedChunks = new Set(uploadSession.uploaded_chunks);
   }
@@ -254,30 +235,19 @@ export class ChunkedUploadManager {
       chunkInfo.status = 'uploading';
       this.options.onChunkProgress(chunkInfo);
 
-      const formData = new FormData();
-      formData.append('uploadId', this.uploadId!);
-      formData.append('chunkNumber', chunkNumber.toString());
-      formData.append('chunk', this.chunks[chunkNumber]);
-
-      const response = await fetch(`${this.baseUrl}/api/upload/chunk`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: formData,
-        signal: controller.signal
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to upload chunk ${chunkNumber}: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      if (!result.success) {
-        throw new Error(result.message || `Failed to upload chunk ${chunkNumber}`);
-      }
-
-      // const uploadResult: UploadChunkResponse = result.data;
+      const chunkFile = new File([this.chunks[chunkNumber]], `chunk_${chunkNumber}`);
+      
+      // Note: We can't pass AbortController signal through our API wrapper for now
+      // This is a limitation that could be addressed in future improvements
+      await chunkedUploadApi.uploadChunk(
+        this.uploadId!,
+        chunkNumber,
+        chunkFile,
+        (progress) => {
+          chunkInfo.progress = progress;
+          this.options.onChunkProgress(chunkInfo);
+        }
+      );
       this.uploadedChunks.add(chunkNumber);
       
       chunkInfo.status = 'completed';
@@ -316,26 +286,10 @@ export class ChunkedUploadManager {
       throw new Error('No upload session');
     }
 
-    const response = await fetch(`${this.baseUrl}/api/upload/complete`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      },
-      body: JSON.stringify({
-        uploadId: this.uploadId,
-        title: this.title
-      })
+    await chunkedUploadApi.completeUpload({
+      uploadId: this.uploadId,
+      title: this.title
     });
-
-    if (!response.ok) {
-      throw new Error(`Failed to complete upload: ${response.statusText}`);
-    }
-
-    const result = await response.json();
-    if (!result.success) {
-      throw new Error(result.message || 'Failed to complete upload');
-    }
 
     // Final progress update
     this.options.onProgress(this.getProgress());
@@ -347,12 +301,7 @@ export class ChunkedUploadManager {
     }
 
     try {
-      await fetch(`${this.baseUrl}/api/upload/${this.uploadId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      await chunkedUploadApi.cancelUpload(this.uploadId);
     } catch (error) {
       console.error('Error cancelling upload session:', error);
     }
@@ -398,37 +347,9 @@ class Semaphore {
 
 // Utility functions
 export async function getUploadSession(uploadId: string): Promise<UploadSession> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-  
-  const response = await fetch(`${baseUrl}/api/upload/status/${uploadId}`, {
-    headers: {
-      'Authorization': `Bearer ${localStorage.getItem('token')}`
-    }
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to get upload session: ${response.statusText}`);
-  }
-
-  const result = await response.json();
-  if (!result.success) {
-    throw new Error(result.message || 'Failed to get upload session');
-  }
-
-  return result.data;
+  return await chunkedUploadApi.getUploadStatus(uploadId);
 }
 
 export async function cancelUploadSession(uploadId: string): Promise<void> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-  
-  const response = await fetch(`${baseUrl}/api/upload/${uploadId}`, {
-    method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${localStorage.getItem('token')}`
-    }
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to cancel upload: ${response.statusText}`);
-  }
+  return await chunkedUploadApi.cancelUpload(uploadId);
 }

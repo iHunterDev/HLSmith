@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/lib/store';
-import { authApi } from '@/lib/api';
+import { authApi } from '@/api/auth';
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuthStore();

@@ -10,7 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { authApi, getErrorMessage, isValidationError, AppError } from '@/lib/api';
+import { authApi } from '@/api/auth';
+import { getErrorMessage, isValidationError, AppError } from '@/lib/http';
 import { useAuthStore } from '@/lib/store';
 import { LoginData } from '@/lib/types';
 

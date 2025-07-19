@@ -1,7 +1,11 @@
+import { config } from 'dotenv';
+
+// Load environment variables first before any other imports
+config();
+
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
-import { config } from 'dotenv';
 import { initializeDatabase } from './database/init';
 import { QueueService } from './services/queueService';
 import { uploadCleanupService } from './services/uploadCleanupService';
@@ -15,8 +19,6 @@ import queueRoutes from './routes/queue';
 import chunkedUploadRoutes from './routes/chunkedUpload';
 import shareRoutes from './routes/share';
 
-// Load environment variables
-config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;

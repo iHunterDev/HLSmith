@@ -3,7 +3,9 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { videoApi, shareApi, getErrorMessage } from '@/lib/api';
+import { videoApi } from '@/api/video';
+import { shareApi } from '@/api/share';
+import { getErrorMessage } from '@/lib/http';
 import { ShareResponse } from '@/lib/types';
 import { Share2, Copy, Eye, EyeOff, Trash2, AlertCircle } from 'lucide-react';
 

@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { shareApi, getErrorMessage } from '@/lib/api';
+import { shareApi } from '@/api/share';
+import { getErrorMessage } from '@/lib/http';
 import { ShareInfo } from '@/lib/types';
 import { AlertCircle, Clock, Eye } from 'lucide-react';
 import dynamic from 'next/dynamic';
