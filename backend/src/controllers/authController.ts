@@ -100,13 +100,13 @@ export async function login(req: Request, res: Response): Promise<void> {
     ) as User;
 
     if (!user) {
-      return ResponseHelper.authenticationError(res, '邮箱或密码错误');
+      return ResponseHelper.validationError(res, '邮箱或密码错误');
     }
 
     // Verify password
     const isPasswordValid = await verifyPassword(password, user.password);
     if (!isPasswordValid) {
-      return ResponseHelper.authenticationError(res, '邮箱或密码错误');
+      return ResponseHelper.validationError(res, '邮箱或密码错误');
     }
 
     // Generate token

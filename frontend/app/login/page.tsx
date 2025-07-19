@@ -44,11 +44,13 @@ export default function LoginPage() {
       login(response.token, response.user);
       router.push('/dashboard');
     } catch (err: unknown) {
+      console.log('Login error:', err);
       const errorMessage = getErrorMessage(err);
       
       // 如果是验证错误，尝试设置字段级错误
       if (isValidationError(err)) {
         const appError = err as AppError;
+        console.log('Validation error details:', appError.details);
         if (appError.details?.fields) {
           (appError.details.fields as string[]).forEach((field: string) => {
             if (field === 'email' || field === 'password') {
@@ -58,6 +60,9 @@ export default function LoginPage() {
               });
             }
           });
+        } else {
+          // 没有具体字段信息时，显示通用错误
+          setError(errorMessage);
         }
       } else {
         setError(errorMessage);
