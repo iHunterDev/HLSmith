@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
+import { ApiResponseUtil, ErrorType, ErrorCode } from './response';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -39,7 +40,7 @@ export function authMiddleware(req: AuthRequest, res: Response, next: NextFuncti
   const authHeader = req.header('Authorization');
   
   if (!authHeader) {
-    res.status(401).json({ error: 'No token provided' });
+    ApiResponseUtil.error(res, 401, ErrorType.AUTHENTICATION_ERROR, ErrorCode.INVALID_TOKEN, 'No token provided');
     return;
   }
 
@@ -47,7 +48,7 @@ export function authMiddleware(req: AuthRequest, res: Response, next: NextFuncti
   const payload = verifyToken(token);
   
   if (!payload) {
-    res.status(401).json({ error: 'Invalid token' });
+    ApiResponseUtil.error(res, 401, ErrorType.AUTHENTICATION_ERROR, ErrorCode.INVALID_TOKEN, 'Invalid token');
     return;
   }
 
