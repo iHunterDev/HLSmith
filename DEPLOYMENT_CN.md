@@ -70,6 +70,7 @@ services:
       
       # 网络配置
       - FRONTEND_URL=http://your-domain.com    # 前端域名
+      - CORS_ORIGIN=http://your-domain.com     # CORS 允许的源地址
       - BASE_URL=http://your-api-domain.com    # API 域名
 ```
 

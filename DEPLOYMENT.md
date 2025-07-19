@@ -70,6 +70,7 @@ services:
       
       # Network configuration
       - FRONTEND_URL=http://your-domain.com    # Frontend domain
+      - CORS_ORIGIN=http://your-domain.com     # CORS allowed origin
       - BASE_URL=http://your-api-domain.com    # API domain
 ```
 

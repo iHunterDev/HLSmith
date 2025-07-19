@@ -12,6 +12,7 @@ services:
       - NODE_ENV=production
       - PORT=3001
       - FRONTEND_URL=http://localhost:3000
+      - CORS_ORIGIN=http://localhost:3000
       - BASE_URL=http://localhost:3001
       - STORAGE_PATH=/app/storage
       - DB_PATH=/app/storage/database.sqlite
