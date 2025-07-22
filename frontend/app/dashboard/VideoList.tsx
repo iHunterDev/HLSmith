@@ -10,7 +10,7 @@ import { videoApi } from '@/api/video';
 import { getErrorMessage } from '@/lib/http';
 import { useVideoStore } from '@/lib/store';
 import { VideoStatus, PaginationMeta, SearchMeta, VideoSearchOptions } from '@/lib/types';
-import { Play, Trash2, Clock, CheckCircle, XCircle, RefreshCw, AlertCircle, Share2, Search, Filter, X, Download } from 'lucide-react';
+import { Play, Trash2, Clock, CheckCircle, XCircle, RefreshCw, AlertCircle, Share2, Search, Filter, X, Download, Edit3, Save, X as Cancel } from 'lucide-react';
 import Image from 'next/image';
 
 // 动态导入VideoShare组件
@@ -27,6 +27,10 @@ export default function VideoList({ refreshTrigger }: VideoListProps) {
   const [error, setError] = useState('');
   const [showShareModal, setShowShareModal] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<{ id: number; title: string } | null>(null);
+  
+  // 视频标题编辑状态
+  const [editingVideoId, setEditingVideoId] = useState<number | null>(null);
+  const [tempTitle, setTempTitle] = useState('');
   const [pagination, setPagination] = useState<PaginationMeta>({
     page: 1,
     limit: 20,
@@ -148,6 +152,43 @@ export default function VideoList({ refreshTrigger }: VideoListProps) {
       setError(`下载失败: ${errorMessage}`);
       console.error('Download failed:', error);
     }
+  };
+
+  // 视频标题编辑处理函数
+  const handleStartEdit = (videoId: number, currentTitle: string) => {
+    setEditingVideoId(videoId);
+    setTempTitle(currentTitle);
+  };
+
+  const handleSaveEdit = async (videoId: number) => {
+    if (!tempTitle.trim()) {
+      setError('视频标题不能为空');
+      return;
+    }
+
+    try {
+      const updatedVideo = await videoApi.updateVideo(videoId, { title: tempTitle.trim() });
+      
+      // 更新本地视频列表中的标题
+      const updatedVideos = videos.map(video => 
+        video.id === videoId ? { ...video, title: updatedVideo.title } : video
+      );
+      setVideos(updatedVideos);
+      
+      // 退出编辑模式
+      setEditingVideoId(null);
+      setTempTitle('');
+      
+    } catch (error: unknown) {
+      const errorMessage = getErrorMessage(error);
+      setError(`更新标题失败: ${errorMessage}`);
+      console.error('Update title failed:', error);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingVideoId(null);
+    setTempTitle('');
   };
 
   const getStatusIcon = (status: VideoStatus) => {
@@ -350,7 +391,7 @@ export default function VideoList({ refreshTrigger }: VideoListProps) {
                 {videos.map((video) => (
                   <div
                     key={video.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
+                    className="group flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
                   >
                     <div className="flex items-center space-x-4">
                       {video.thumbnail_url ? (
@@ -365,8 +406,56 @@ export default function VideoList({ refreshTrigger }: VideoListProps) {
                         </div>
                       )}
                       
-                      <div>
-                        <h3 className="font-medium">{video.title}</h3>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          {editingVideoId === video.id ? (
+                            <div className="flex items-center gap-2 flex-1">
+                              <Input
+                                value={tempTitle}
+                                onChange={(e) => setTempTitle(e.target.value)}
+                                className="text-base font-medium h-8"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    handleSaveEdit(video.id);
+                                  } else if (e.key === 'Escape') {
+                                    handleCancelEdit();
+                                  }
+                                }}
+                              />
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleSaveEdit(video.id)}
+                                  className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
+                                >
+                                  <Save className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={handleCancelEdit}
+                                  className="h-8 w-8 p-0 text-gray-500 hover:text-gray-700"
+                                >
+                                  <Cancel className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <h3 className="font-medium flex-1">{video.title}</h3>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleStartEdit(video.id, video.title)}
+                                className="h-8 w-8 p-0 text-gray-500 hover:text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
                         <p className="text-sm text-gray-500">
                           {video.original_filename} • {(video.file_size / 1024 / 1024).toFixed(1)} MB
                           {video.duration && ` • ${Math.floor(video.duration / 60)}:${String(video.duration % 60).padStart(2, '0')}`}
@@ -387,6 +476,7 @@ export default function VideoList({ refreshTrigger }: VideoListProps) {
                             variant="outline"
                             size="sm"
                             onClick={() => window.open(`/video/${video.id}`, '_blank')}
+                            disabled={editingVideoId === video.id}
                           >
                             <Play className="w-4 h-4 mr-1" />
                             播放
@@ -396,6 +486,7 @@ export default function VideoList({ refreshTrigger }: VideoListProps) {
                             size="sm"
                             onClick={() => handleShare({ id: video.id, title: video.title })}
                             className="text-green-600 hover:text-green-700"
+                            disabled={editingVideoId === video.id}
                           >
                             <Share2 className="w-4 h-4 mr-1" />
                             分享
@@ -408,6 +499,7 @@ export default function VideoList({ refreshTrigger }: VideoListProps) {
                         size="sm"
                         onClick={() => handleDownload(video.id)}
                         className="text-blue-600 hover:text-blue-700"
+                        disabled={editingVideoId === video.id}
                       >
                         <Download className="w-4 h-4 mr-1" />
                         下载
@@ -419,6 +511,7 @@ export default function VideoList({ refreshTrigger }: VideoListProps) {
                           size="sm"
                           onClick={() => handleRetry(video.id)}
                           className="text-blue-600 hover:text-blue-700"
+                          disabled={editingVideoId === video.id}
                         >
                           <RefreshCw className="w-4 h-4 mr-1" />
                           重试
@@ -433,6 +526,7 @@ export default function VideoList({ refreshTrigger }: VideoListProps) {
                           variant="outline"
                           size="sm"
                           onClick={() => handleDelete(video.id)}
+                          disabled={editingVideoId === video.id}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
