@@ -56,7 +56,7 @@ export async function generateShareLink(req: AuthRequest, res: Response): Promis
     const shareId = newShare.id;
 
     // 构建分享URL
-    const shareUrl = `${req.protocol}://${req.get('host')}/api/share/${shareToken}/playlist.m3u8`;
+    const shareUrl = `${process.env.FRONTEND_URL?.replace(/\/$/, '')}/api/share/${shareToken}/playlist.m3u8`;
 
     // 获取完整的分享信息
     const shareInfo = await db.get(
@@ -113,7 +113,7 @@ export async function getVideoShares(req: AuthRequest, res: Response): Promise<v
       id: share.id,
       video_id: share.video_id,
       access_token: share.access_token,
-      share_url: `${req.protocol}://${req.get('host')}/api/share/${share.access_token}/playlist.m3u8`,
+      share_url: `${process.env.FRONTEND_URL?.replace(/\/$/, '')}/api/share/${share.access_token}/playlist.m3u8`,
       created_at: share.created_at,
       is_active: share.is_active,
       access_count: share.access_count
