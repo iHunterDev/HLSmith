@@ -150,6 +150,64 @@ export async function initializeDatabase(): Promise<void> {
     )
   `);
 
+  // Create collections table
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS collections (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      description TEXT,
+      cover TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Create collection_items table
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS collection_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      collection_id INTEGER NOT NULL,
+      video_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      sort_order INTEGER DEFAULT 0,
+      available_from DATETIME,
+      available_until DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (collection_id) REFERENCES collections (id) ON DELETE CASCADE,
+      FOREIGN KEY (video_id) REFERENCES videos (id) ON DELETE CASCADE
+    )
+  `);
+
+  // Create watch_sessions table
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS watch_sessions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      viewer_key TEXT NOT NULL,
+      collection_item_id INTEGER NOT NULL,
+      video_id INTEGER NOT NULL,
+      total_seconds INTEGER NOT NULL DEFAULT 0,
+      last_heartbeat_at DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (collection_item_id) REFERENCES collection_items (id) ON DELETE CASCADE,
+      FOREIGN KEY (video_id) REFERENCES videos (id) ON DELETE CASCADE
+    )
+  `);
+
+  // Create playback_tokens table
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS playback_tokens (
+      token TEXT PRIMARY KEY,
+      collection_item_id INTEGER NOT NULL,
+      video_id INTEGER NOT NULL,
+      expires_at DATETIME NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (collection_item_id) REFERENCES collection_items (id) ON DELETE CASCADE,
+      FOREIGN KEY (video_id) REFERENCES videos (id) ON DELETE CASCADE
+    )
+  `);
+
   // Create indexes
   await db.run(`CREATE INDEX IF NOT EXISTS idx_videos_user_id ON videos(user_id)`);
   await db.run(`CREATE INDEX IF NOT EXISTS idx_videos_status ON videos(status)`);
@@ -164,6 +222,14 @@ export async function initializeDatabase(): Promise<void> {
   await db.run(`CREATE INDEX IF NOT EXISTS idx_video_shares_token ON video_shares(access_token)`);
   await db.run(`CREATE INDEX IF NOT EXISTS idx_video_shares_video_id ON video_shares(video_id)`);
   await db.run(`CREATE INDEX IF NOT EXISTS idx_video_shares_active ON video_shares(is_active)`);
+  await db.run(`CREATE INDEX IF NOT EXISTS idx_collection_items_collection_id ON collection_items(collection_id)`);
+  await db.run(`CREATE INDEX IF NOT EXISTS idx_collection_items_video_id ON collection_items(video_id)`);
+  await db.run(`CREATE INDEX IF NOT EXISTS idx_collection_items_sort_order ON collection_items(collection_id, sort_order)`);
+  await db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_watch_sessions_unique ON watch_sessions(viewer_key, collection_item_id)`);
+  await db.run(`CREATE INDEX IF NOT EXISTS idx_watch_sessions_video_id ON watch_sessions(video_id)`);
+  await db.run(`CREATE INDEX IF NOT EXISTS idx_watch_sessions_last_heartbeat ON watch_sessions(last_heartbeat_at)`);
+  await db.run(`CREATE INDEX IF NOT EXISTS idx_playback_tokens_expires_at ON playback_tokens(expires_at)`);
+  await db.run(`CREATE INDEX IF NOT EXISTS idx_playback_tokens_collection_item ON playback_tokens(collection_item_id)`);
 
   console.log('Database initialized successfully');
 }

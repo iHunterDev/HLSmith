@@ -18,6 +18,9 @@ import streamRoutes from './routes/stream';
 import queueRoutes from './routes/queue';
 import chunkedUploadRoutes from './routes/chunkedUpload';
 import shareRoutes from './routes/share';
+import collectionRoutes from './routes/collections';
+import playbackRoutes from './routes/playback';
+import watchRoutes from './routes/watch';
 
 
 const app = express();
@@ -63,6 +66,9 @@ app.use('/api/stream', streamRoutes);
 app.use('/api/queue', queueRoutes);
 app.use('/api/upload', chunkedUploadRoutes);
 app.use('/api/share', shareRoutes);
+app.use('/api/collections', collectionRoutes);
+app.use('/api/playback', playbackRoutes);
+app.use('/api/watch', watchRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
