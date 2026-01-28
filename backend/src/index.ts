@@ -19,6 +19,7 @@ import queueRoutes from './routes/queue';
 import chunkedUploadRoutes from './routes/chunkedUpload';
 import shareRoutes from './routes/share';
 import collectionRoutes from './routes/collections';
+import collectionItemRoutes from './routes/collectionItems';
 import playbackRoutes from './routes/playback';
 import watchRoutes from './routes/watch';
 
@@ -67,6 +68,7 @@ app.use('/api/queue', queueRoutes);
 app.use('/api/upload', chunkedUploadRoutes);
 app.use('/api/share', shareRoutes);
 app.use('/api/collections', collectionRoutes);
+app.use('/api/collection-items', collectionItemRoutes);
 app.use('/api/playback', playbackRoutes);
 app.use('/api/watch', watchRoutes);
 

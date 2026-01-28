@@ -1,4 +1,4 @@
-import test from 'node:test';
+import { test, beforeAll, afterAll, beforeEach } from 'vitest';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -75,7 +75,7 @@ async function seedBase(): Promise<{ collectionItemId: number }>{
   return { collectionItemId: item.id };
 }
 
-test.before(async () => {
+beforeAll(async () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hlsmith-'));
   const dbPath = path.join(tempDir, 'test.sqlite');
   process.env.DB_PATH = dbPath;
@@ -86,13 +86,13 @@ test.before(async () => {
   db = DatabaseManager.getInstance();
 });
 
-test.after(async () => {
+afterAll(async () => {
   if (db) {
     await db.close();
   }
 });
 
-test.beforeEach(async () => {
+beforeEach(async () => {
   await db.run('DELETE FROM playback_tokens');
   await db.run('DELETE FROM collection_items');
   await db.run('DELETE FROM collections');

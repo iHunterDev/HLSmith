@@ -63,3 +63,8 @@ Thumbs.db
 
 # claude code
 .claude
+
+# Local planning/notes
+task_plan.md
+findings.md
+progress.md

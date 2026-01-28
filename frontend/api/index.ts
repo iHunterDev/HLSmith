@@ -6,6 +6,10 @@ import { queueApi } from './queue';
 import { shareApi } from './share';
 import { streamApi } from './stream';
 import { systemApi } from './system';
+import { collectionsApi } from './collections';
+import { collectionItemsApi } from './collectionItems';
+import { playbackApi } from './playback';
+import { watchApi } from './watch';
 
 export { authApi } from './auth';
 export { videoApi } from './video';
@@ -15,6 +19,10 @@ export { queueApi } from './queue';
 export { shareApi } from './share';
 export { streamApi } from './stream';
 export { systemApi } from './system';
+export { collectionsApi } from './collections';
+export { collectionItemsApi } from './collectionItems';
+export { playbackApi } from './playback';
+export { watchApi } from './watch';
 
 // 向后兼容的导出
 export const api = {
@@ -25,7 +33,11 @@ export const api = {
   queue: queueApi,
   share: shareApi,
   stream: streamApi,
-  system: systemApi
+  system: systemApi,
+  collections: collectionsApi,
+  collectionItems: collectionItemsApi,
+  playback: playbackApi,
+  watch: watchApi
 };
 
 export default api;

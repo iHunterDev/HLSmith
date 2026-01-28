@@ -150,6 +150,34 @@
 - 统一错误码与返回结构
 - 打通全链路: authorize -> stream -> heartbeat -> summary
 
+### 阶段 1.5: HLSmith 管理后台前端
+- 使用现有前端 UI 框架与设计风格 (Next.js + shadcn/ui New York)
+- 管理后台核心页面:
+  - 合集管理: 列表/创建/编辑/删除
+  - 合集详情: 集数列表、排序、上下架时间、绑定视频
+  - 集数管理: 新增/编辑/删除、可播时间窗配置
+  - 播放可用性检查: 输入 viewer_key + collection_item_id -> 调用 authorize 显示结果
+  - 学习时长查询: 输入 viewer_key -> 调用 summary 显示汇总
+- 前端对接 API:
+  - GET /api/collections
+  - GET /api/collections/:id
+  - POST /api/collections (若已有)
+  - PATCH /api/collections/:id (若已有)
+  - DELETE /api/collections/:id (若已有)
+  - POST /api/collection-items (若已有)
+  - PATCH /api/collection-items/:id (若已有)
+  - DELETE /api/collection-items/:id (若已有)
+  - POST /api/playback/authorize
+  - GET /api/watch/summary
+- 表单与校验:
+  - 标题必填，sort_order 为整数
+  - available_from/available_until 允许空；有值时需满足 from <= until
+  - 时间字段统一显示本地时区，保存为 UTC
+- 交互细节:
+  - 列表支持搜索/分页 (若有现成组件则复用)
+  - 保存/删除有确认与成功提示
+  - 授权检查与统计查询区块独立，不影响数据管理流程
+
 ### 阶段 2: WordPress 插件
 - 插件配置: HLSmith Base URL + shared_secret
 - 文章自定义字段: hlsmith_collection_id
@@ -176,6 +204,14 @@
 - [x] 统一错误码与错误结构
 - [x] 全链路验证 (authorize -> stream -> heartbeat -> summary)
 
+### HLSmith 管理后台前端
+- [ ] 合集列表页: 查询/创建/编辑/删除
+- [ ] 合集详情页: 集数列表、排序、时间窗编辑
+- [ ] 集数新增/编辑表单
+- [ ] 播放可用性检查工具 (authorize)
+- [ ] 学习时长查询工具 (summary)
+- [ ] 基础表单校验与错误提示
+
 ### WordPress 插件
 - [ ] 插件设置页: Base URL + shared_secret
 - [ ] 文章自定义字段: hlsmith_collection_id
@@ -195,6 +231,12 @@
 - [x] viewer_key 验签与可播时间窗生效
 - [x] authorize/stream/heartbeat/summary 跑通
 - [x] 错误码与返回结构统一
+
+### 里程碑 1.5: HLSmith 管理后台前端完成
+- [ ] 合集管理全流程可用 (增删改查)
+- [ ] 集数管理与上下架时间窗可配置
+- [ ] 授权可播检查工具可用
+- [ ] 学习时长查询工具可用
 
 ### 里程碑 2: WordPress 中转与页面接入完成
 - [ ] 插件配置可保存 Base URL 与 shared_secret

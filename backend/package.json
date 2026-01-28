@@ -8,7 +8,7 @@
     "dev": "nodemon",
     "build": "tsc",
     "clean": "rm -rf dist",
-    "test": "TS_NODE_PROJECT=tsconfig.json node --test -r ts-node/register \"src/__tests__/**/*.test.ts\""
+    "test": "vitest run"
   },
   "keywords": [
     "video",
@@ -38,9 +38,12 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.0.0",
     "@types/node": "^24.0.13",
+    "@types/supertest": "^6.0.2",
     "@types/uuid": "^10.0.0",
     "nodemon": "^3.1.10",
+    "supertest": "^7.1.4",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
   }
 }

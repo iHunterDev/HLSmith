@@ -32,13 +32,29 @@ export default function Navbar() {
               HLSmith
             </h1>
             {isAuthenticated && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.push('/dashboard')}
-              >
-                控制台
-              </Button>
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => router.push('/dashboard')}
+                >
+                  控制台
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => router.push('/dashboard/collections')}
+                >
+                  合集管理
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => router.push('/dashboard/tools')}
+                >
+                  工具
+                </Button>
+              </>
             )}
           </div>
 

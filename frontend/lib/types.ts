@@ -123,6 +123,103 @@ export interface VideoUploadResponse {
 }
 
 // ========================
+// 合集相关类型定义
+// ========================
+
+export interface Collection {
+  id: number;
+  title: string;
+  description?: string | null;
+  cover?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CollectionItem {
+  id: number;
+  collection_id: number;
+  video_id: number;
+  title: string;
+  sort_order: number;
+  available_from?: string | null;
+  available_until?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CollectionListResponse {
+  collections: Collection[];
+  total: number;
+}
+
+export interface CollectionDetailResponse {
+  collection: Collection;
+  items: CollectionItem[];
+}
+
+export interface CreateCollectionRequest {
+  title: string;
+  description?: string | null;
+  cover?: string | null;
+}
+
+export interface UpdateCollectionRequest {
+  title: string;
+  description?: string | null;
+  cover?: string | null;
+}
+
+export interface CreateCollectionItemRequest {
+  collection_id: number;
+  video_id: number;
+  title: string;
+  sort_order?: number;
+  available_from?: string | null;
+  available_until?: string | null;
+}
+
+export interface UpdateCollectionItemRequest {
+  title: string;
+  sort_order?: number;
+  available_from?: string | null;
+  available_until?: string | null;
+  video_id?: number;
+}
+
+// ========================
+// 播放授权/学习时长相关类型定义
+// ========================
+
+export interface PlaybackAuthorizeRequest {
+  viewer_key: string;
+  collection_item_id: number;
+}
+
+export interface PlaybackAuthorizeResponse {
+  playable: boolean;
+  available_from?: string | null;
+  available_until?: string | null;
+  playback_token: string;
+}
+
+export interface WatchSummaryItem {
+  collection_item_id: number;
+  video_id: number;
+  total_seconds: number;
+}
+
+export interface WatchSummaryCollection {
+  collection_id: number;
+  total_seconds: number;
+}
+
+export interface WatchSummaryResponse {
+  total_seconds: number;
+  collections: WatchSummaryCollection[];
+  items: WatchSummaryItem[];
+}
+
+// ========================
 // 分片上传相关类型定义
 // ========================
 

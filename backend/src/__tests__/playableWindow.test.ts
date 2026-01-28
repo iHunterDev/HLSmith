@@ -1,4 +1,4 @@
-import test from 'node:test';
+import { test, beforeAll, afterAll, beforeEach } from 'vitest';
 import assert from 'node:assert/strict';
 
 import { isPlayableWindow } from '../utils/playableWindow';

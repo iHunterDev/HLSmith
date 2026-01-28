@@ -1,10 +1,11 @@
-import test from 'node:test';
+import { test, beforeAll, afterAll, beforeEach } from 'vitest';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
 import type { Request, Response } from 'express';
+import { ErrorCode } from '../utils/response';
 
 type DbInstance = {
   run: (sql: string, params?: any[]) => Promise<void>;
@@ -52,7 +53,7 @@ async function seedUserAndVideo(): Promise<{ userId: number; videoId: number }> 
   return { userId: user.id, videoId: video.id };
 }
 
-test.before(async () => {
+beforeAll(async () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hlsmith-'));
   const dbPath = path.join(tempDir, 'test.sqlite');
   process.env.DB_PATH = dbPath;
@@ -62,13 +63,13 @@ test.before(async () => {
   db = DatabaseManager.getInstance();
 });
 
-test.after(async () => {
+afterAll(async () => {
   if (db) {
     await db.close();
   }
 });
 
-test.beforeEach(async () => {
+beforeEach(async () => {
   await db.run('DELETE FROM collection_items');
   await db.run('DELETE FROM collections');
   await db.run('DELETE FROM videos');
@@ -147,4 +148,140 @@ test('getCollectionDetail returns collection and items ordered', async () => {
   assert.equal(res.payload.data.items.length, 2);
   assert.equal(res.payload.data.items[0].title, 'Episode 1');
   assert.equal(res.payload.data.items[1].title, 'Episode 2');
+});
+
+test('createCollection creates collection', async () => {
+  const { createCollection } = await import('../controllers/collectionController');
+
+  const req = {
+    body: {
+      title: 'Series A',
+      description: 'desc',
+      cover: 'cover.png',
+    },
+  } as Request;
+
+  const res = createMockResponse();
+  await createCollection(req, res as unknown as Response);
+
+  assert.equal(res.statusCode, 201);
+  assert.equal(res.payload.success, true);
+  assert.equal(res.payload.data.collection.title, 'Series A');
+
+  const row = await db.get('SELECT title, description, cover FROM collections WHERE title = ?', ['Series A']);
+  assert.equal(row.title, 'Series A');
+  assert.equal(row.description, 'desc');
+  assert.equal(row.cover, 'cover.png');
+});
+
+test('createCollection validates required fields', async () => {
+  const { createCollection } = await import('../controllers/collectionController');
+
+  const req = { body: { description: 'desc' } } as Request;
+  const res = createMockResponse();
+  await createCollection(req, res as unknown as Response);
+
+  assert.equal(res.statusCode, 400);
+  assert.equal(res.payload.error.code, ErrorCode.INVALID_PARAMS);
+});
+
+test('updateCollection updates collection', async () => {
+  await db.run(
+    'INSERT INTO collections (title, description, cover, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
+    ['Series A', 'desc', 'cover', '2024-01-01T00:00:00Z', '2024-01-01T00:00:00Z'],
+  );
+  const collection = await db.get('SELECT id FROM collections WHERE title = ?', ['Series A']);
+
+  const { updateCollection } = await import('../controllers/collectionController');
+
+  const req = {
+    params: { id: String(collection.id) },
+    body: { title: 'Series B', description: 'desc2', cover: 'cover2' },
+  } as unknown as Request;
+  const res = createMockResponse();
+  await updateCollection(req, res as unknown as Response);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.payload.success, true);
+  assert.equal(res.payload.data.collection.title, 'Series B');
+
+  const row = await db.get('SELECT title, description, cover FROM collections WHERE id = ?', [collection.id]);
+  assert.equal(row.title, 'Series B');
+  assert.equal(row.description, 'desc2');
+  assert.equal(row.cover, 'cover2');
+});
+
+test('updateCollection validates required title', async () => {
+  await db.run(
+    'INSERT INTO collections (title, description, cover, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
+    ['Series A', 'desc', 'cover', '2024-01-01T00:00:00Z', '2024-01-01T00:00:00Z'],
+  );
+  const collection = await db.get('SELECT id FROM collections WHERE title = ?', ['Series A']);
+
+  const { updateCollection } = await import('../controllers/collectionController');
+
+  const req = {
+    params: { id: String(collection.id) },
+    body: { description: 'desc2' },
+  } as unknown as Request;
+  const res = createMockResponse();
+  await updateCollection(req, res as unknown as Response);
+
+  assert.equal(res.statusCode, 400);
+  assert.equal(res.payload.error.code, ErrorCode.INVALID_PARAMS);
+});
+
+test('updateCollection returns 404 when not found', async () => {
+  const { updateCollection } = await import('../controllers/collectionController');
+
+  const req = {
+    params: { id: '9999' },
+    body: { title: 'Series B' },
+  } as unknown as Request;
+  const res = createMockResponse();
+  await updateCollection(req, res as unknown as Response);
+
+  assert.equal(res.statusCode, 404);
+  assert.equal(res.payload.error.code, ErrorCode.RESOURCE_NOT_FOUND);
+});
+
+test('deleteCollection removes collection', async () => {
+  await db.run(
+    'INSERT INTO collections (title, description, cover, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
+    ['Series A', 'desc', 'cover', '2024-01-01T00:00:00Z', '2024-01-01T00:00:00Z'],
+  );
+  const collection = await db.get('SELECT id FROM collections WHERE title = ?', ['Series A']);
+
+  const { deleteCollection } = await import('../controllers/collectionController');
+
+  const req = { params: { id: String(collection.id) } } as unknown as Request;
+  const res = createMockResponse();
+  await deleteCollection(req, res as unknown as Response);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.payload.success, true);
+  const row = await db.get('SELECT id FROM collections WHERE id = ?', [collection.id]);
+  assert.equal(row, null);
+});
+
+test('deleteCollection returns 404 when not found', async () => {
+  const { deleteCollection } = await import('../controllers/collectionController');
+
+  const req = { params: { id: '9999' } } as unknown as Request;
+  const res = createMockResponse();
+  await deleteCollection(req, res as unknown as Response);
+
+  assert.equal(res.statusCode, 404);
+  assert.equal(res.payload.error.code, ErrorCode.RESOURCE_NOT_FOUND);
+});
+
+test('deleteCollection validates id', async () => {
+  const { deleteCollection } = await import('../controllers/collectionController');
+
+  const req = { params: { id: 'NaN' } } as unknown as Request;
+  const res = createMockResponse();
+  await deleteCollection(req, res as unknown as Response);
+
+  assert.equal(res.statusCode, 400);
+  assert.equal(res.payload.error.code, ErrorCode.INVALID_PARAMS);
 });

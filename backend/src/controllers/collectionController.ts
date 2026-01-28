@@ -90,3 +90,82 @@ export async function getCollectionDetail(req: Request, res: Response): Promise<
     ResponseHelper.internalError(res, '获取合集详情失败');
   }
 }
+
+export async function createCollection(req: Request, res: Response): Promise<void> {
+  try {
+    const { title, description, cover } = req.body ?? {};
+
+    if (!title) {
+      return ResponseHelper.validationError(res, '合集标题不能为空');
+    }
+
+    await db.run(
+      'INSERT INTO collections (title, description, cover, created_at, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
+      [title, description ?? null, cover ?? null]
+    );
+
+    const collection = await db.get(
+      'SELECT id, title, description, cover, created_at, updated_at FROM collections WHERE id = last_insert_rowid()'
+    );
+
+    ResponseHelper.success(res, { collection }, '合集创建成功', 201);
+  } catch (error) {
+    console.error('Create collection error:', error);
+    ResponseHelper.internalError(res, '创建合集失败');
+  }
+}
+
+export async function updateCollection(req: Request, res: Response): Promise<void> {
+  try {
+    const collectionId = Number(req.params.id);
+    if (!Number.isFinite(collectionId)) {
+      return ResponseHelper.validationError(res, '合集ID无效');
+    }
+
+    const { title, description, cover } = req.body ?? {};
+    if (!title) {
+      return ResponseHelper.validationError(res, '合集标题不能为空');
+    }
+
+    const existing = await db.get('SELECT id FROM collections WHERE id = ?', [collectionId]);
+    if (!existing) {
+      return ResponseHelper.notFoundError(res, '合集不存在');
+    }
+
+    await db.run(
+      'UPDATE collections SET title = ?, description = ?, cover = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [title, description ?? null, cover ?? null, collectionId]
+    );
+
+    const collection = await db.get(
+      'SELECT id, title, description, cover, created_at, updated_at FROM collections WHERE id = ?',
+      [collectionId]
+    );
+
+    ResponseHelper.success(res, { collection }, '合集更新成功');
+  } catch (error) {
+    console.error('Update collection error:', error);
+    ResponseHelper.internalError(res, '更新合集失败');
+  }
+}
+
+export async function deleteCollection(req: Request, res: Response): Promise<void> {
+  try {
+    const collectionId = Number(req.params.id);
+    if (!Number.isFinite(collectionId)) {
+      return ResponseHelper.validationError(res, '合集ID无效');
+    }
+
+    const existing = await db.get('SELECT id FROM collections WHERE id = ?', [collectionId]);
+    if (!existing) {
+      return ResponseHelper.notFoundError(res, '合集不存在');
+    }
+
+    await db.run('DELETE FROM collections WHERE id = ?', [collectionId]);
+
+    ResponseHelper.successWithoutData(res, '合集删除成功');
+  } catch (error) {
+    console.error('Delete collection error:', error);
+    ResponseHelper.internalError(res, '删除合集失败');
+  }
+}
