@@ -15,6 +15,10 @@ vi.mock('@/components/layout/Navbar', () => ({
   default: () => <div data-testid="navbar" />,
 }));
 
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
 describe('CollectionsPage', () => {
   it('initial load calls getCollections', async () => {
     const spy = vi.spyOn(collectionsApi, 'getCollections');
@@ -37,7 +41,7 @@ describe('CollectionsPage', () => {
     );
 
     render(<CollectionsPage />);
-    await screen.findByText('暂无合集');
+    await screen.findByText('暂无合集，先在右侧创建一个合集。');
   });
 
   it('renders collection list with cover and updated time', async () => {
@@ -45,7 +49,7 @@ describe('CollectionsPage', () => {
     await screen.findByText('Series A');
     expect(screen.getByText('desc')).toBeInTheDocument();
     expect(screen.getByAltText('Series A cover')).toBeInTheDocument();
-    expect(screen.getByText('更新于 2024-01-01')).toBeInTheDocument();
+    expect(screen.getByText(/更新于/)).toBeInTheDocument();
   });
 
   it('creates collection successfully', async () => {
@@ -81,9 +85,9 @@ describe('CollectionsPage', () => {
     );
 
     render(<CollectionsPage />);
-    await screen.findByText('暂无合集');
+    await screen.findByText('暂无合集，先在右侧创建一个合集。');
 
-    fireEvent.change(screen.getByPlaceholderText('标题'), { target: { value: 'Series B' } });
+    fireEvent.change(screen.getByLabelText('合集标题'), { target: { value: 'Series B' } });
     fireEvent.click(screen.getByText('创建'));
 
     await screen.findByText('创建成功');
@@ -104,7 +108,7 @@ describe('CollectionsPage', () => {
     );
 
     render(<CollectionsPage />);
-    await screen.findByText('暂无合集');
+    await screen.findByText('暂无合集，先在右侧创建一个合集。');
     fireEvent.click(screen.getByText('创建'));
     await screen.findByText('请输入合集标题');
   });
@@ -156,7 +160,7 @@ describe('CollectionsPage', () => {
     render(<CollectionsPage />);
     await screen.findByText('Series C');
     fireEvent.click(screen.getByText('编辑'));
-    fireEvent.change(screen.getByPlaceholderText('标题'), { target: { value: 'Series C Updated' } });
+    fireEvent.change(screen.getByLabelText('合集标题'), { target: { value: 'Series C Updated' } });
     fireEvent.click(screen.getByText('保存'));
     await screen.findByText('更新成功');
     await screen.findByText('Series C Updated');

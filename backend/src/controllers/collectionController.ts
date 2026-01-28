@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { DatabaseManager } from '../database/init';
 import { ResponseHelper } from '../utils/response';
+import { StorageUtils } from '../utils/storageUtils';
 import { CollectionResponse } from '../models/Collection';
 
 const db = DatabaseManager.getInstance();
@@ -51,10 +52,22 @@ export async function getCollectionDetail(req: Request, res: Response): Promise<
     }
 
     const items = await db.all(
-      `SELECT id, collection_id, video_id, title, sort_order, available_from, available_until, created_at, updated_at
-       FROM collection_items
-       WHERE collection_id = ?
-       ORDER BY sort_order ASC, id ASC`,
+      `SELECT
+         ci.id,
+         ci.collection_id,
+         ci.video_id,
+         ci.title,
+         ci.sort_order,
+         ci.available_from,
+         ci.available_until,
+         ci.created_at,
+         ci.updated_at,
+         v.thumbnail_path,
+         v.title as video_title
+       FROM collection_items ci
+       LEFT JOIN videos v ON v.id = ci.video_id
+       WHERE ci.collection_id = ?
+       ORDER BY ci.sort_order ASC, ci.id ASC`,
       [collectionId]
     );
 
@@ -68,6 +81,8 @@ export async function getCollectionDetail(req: Request, res: Response): Promise<
       available_until: item.available_until,
       created_at: item.created_at,
       updated_at: item.updated_at,
+      thumbnail_url: StorageUtils.buildThumbnailUrl(item.thumbnail_path, req),
+      video_title: item.video_title,
     }));
 
     ResponseHelper.success(
@@ -167,5 +182,28 @@ export async function deleteCollection(req: Request, res: Response): Promise<voi
   } catch (error) {
     console.error('Delete collection error:', error);
     ResponseHelper.internalError(res, '删除合集失败');
+  }
+}
+
+export async function uploadCollectionCover(req: Request, res: Response): Promise<void> {
+  try {
+    if (!req.file) {
+      return ResponseHelper.validationError(res, '请选择要上传的封面文件');
+    }
+
+    const coverUrl = StorageUtils.buildCoverUrl(req.file.path, req);
+    ResponseHelper.success(
+      res,
+      {
+        cover_url: coverUrl,
+        cover_path: req.file.path,
+        filename: req.file.filename,
+      },
+      '封面上传成功',
+      201
+    );
+  } catch (error) {
+    console.error('Cover upload error:', error);
+    ResponseHelper.internalError(res, '封面上传失败');
   }
 }

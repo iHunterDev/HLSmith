@@ -6,6 +6,7 @@ import type {
   CreateCollectionRequest,
   UpdateCollectionRequest,
   Collection,
+  CoverUploadResponse,
 } from '../lib/types';
 
 export const collectionsApi = {
@@ -49,5 +50,19 @@ export const collectionsApi = {
   deleteCollection: async (id: number): Promise<void> => {
     const response = await httpClient.delete<ApiResponse<void>>(`/api/collections/${id}`);
     extractApiData(response);
+  },
+
+  /**
+   * 上传合集封面
+   */
+  uploadCover: async (file: File): Promise<CoverUploadResponse> => {
+    const formData = new FormData();
+    formData.append('cover', file);
+    const response = await httpClient.post<ApiResponse<CoverUploadResponse>>('/api/collections/cover', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return extractApiData(response);
   },
 };

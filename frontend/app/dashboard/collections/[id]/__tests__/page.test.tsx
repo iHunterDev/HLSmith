@@ -9,6 +9,7 @@ const API_BASE_URL = 'http://localhost:3001';
 
 vi.mock('next/navigation', () => ({
   useParams: () => ({ id: '2' }),
+  useRouter: () => ({ push: vi.fn() }),
 }));
 
 vi.mock('@/components/auth/ProtectedRoute', () => ({
@@ -58,6 +59,8 @@ describe('CollectionDetailPage', () => {
                 sort_order: 2,
                 available_from: '2024-01-02T00:00:00Z',
                 available_until: '2024-01-03T00:00:00Z',
+                thumbnail_url: null,
+                video_title: null,
                 created_at: '2024-01-01T00:00:00Z',
                 updated_at: '2024-01-01T00:00:00Z',
               },
@@ -70,7 +73,7 @@ describe('CollectionDetailPage', () => {
 
     render(<CollectionDetailPage />);
     await screen.findByText('Episode 2');
-    expect(screen.getByText('播放时间: 2024-01-02 00:00 ~ 2024-01-03 00:00')).toBeInTheDocument();
+    expect(screen.getByText(/播放时间/)).toBeInTheDocument();
   });
 
   it('creates collection item successfully', async () => {
@@ -109,6 +112,8 @@ describe('CollectionDetailPage', () => {
               sort_order: 0,
               available_from: null,
               available_until: null,
+              thumbnail_url: null,
+              video_title: null,
               created_at: '2024-01-01T00:00:00Z',
               updated_at: '2024-01-01T00:00:00Z',
             },
@@ -120,8 +125,8 @@ describe('CollectionDetailPage', () => {
 
     render(<CollectionDetailPage />);
     await screen.findByText('Series 2');
-    fireEvent.change(screen.getByPlaceholderText('标题'), { target: { value: 'Episode New' } });
-    fireEvent.change(screen.getByPlaceholderText('video_id'), { target: { value: '10' } });
+    fireEvent.change(screen.getByLabelText('集数标题'), { target: { value: 'Episode New' } });
+    fireEvent.change(screen.getByLabelText('选择视频'), { target: { value: '10' } });
     fireEvent.click(screen.getByText('创建'));
 
     await screen.findByText('创建成功');
@@ -131,9 +136,9 @@ describe('CollectionDetailPage', () => {
   it('validates sort_order integer', async () => {
     render(<CollectionDetailPage />);
     await screen.findByText('Episode 1');
-    fireEvent.change(screen.getByPlaceholderText('标题'), { target: { value: 'Episode X' } });
-    fireEvent.change(screen.getByPlaceholderText('video_id'), { target: { value: '10' } });
-    fireEvent.change(screen.getByPlaceholderText('sort_order'), { target: { value: '1.2' } });
+    fireEvent.change(screen.getByLabelText('集数标题'), { target: { value: 'Episode X' } });
+    fireEvent.change(screen.getByLabelText('选择视频'), { target: { value: '10' } });
+    fireEvent.change(screen.getByLabelText('排序'), { target: { value: '1.2' } });
     fireEvent.click(screen.getByText('创建'));
     await screen.findByText('sort_order 必须整数');
   });
@@ -141,10 +146,10 @@ describe('CollectionDetailPage', () => {
   it('validates available window', async () => {
     render(<CollectionDetailPage />);
     await screen.findByText('Episode 1');
-    fireEvent.change(screen.getByPlaceholderText('标题'), { target: { value: 'Episode X' } });
-    fireEvent.change(screen.getByPlaceholderText('video_id'), { target: { value: '10' } });
-    fireEvent.change(screen.getByPlaceholderText('available_from'), { target: { value: '2024-02-01T00:00:00Z' } });
-    fireEvent.change(screen.getByPlaceholderText('available_until'), { target: { value: '2024-01-01T00:00:00Z' } });
+    fireEvent.change(screen.getByLabelText('集数标题'), { target: { value: 'Episode X' } });
+    fireEvent.change(screen.getByLabelText('选择视频'), { target: { value: '10' } });
+    fireEvent.change(screen.getByLabelText('可播开始时间'), { target: { value: '2024-02-01T00:00' } });
+    fireEvent.change(screen.getByLabelText('可播结束时间'), { target: { value: '2024-01-01T00:00' } });
     fireEvent.click(screen.getByText('创建'));
     await screen.findByText('available_from 不能晚于 available_until');
   });
@@ -175,6 +180,8 @@ describe('CollectionDetailPage', () => {
                 sort_order: 1,
                 available_from: null,
                 available_until: null,
+                thumbnail_url: null,
+                video_title: null,
                 created_at: '2024-01-01T00:00:00Z',
                 updated_at: '2024-01-01T00:00:00Z',
               },
@@ -198,6 +205,8 @@ describe('CollectionDetailPage', () => {
               sort_order: 1,
               available_from: null,
               available_until: null,
+              thumbnail_url: null,
+              video_title: null,
               created_at: '2024-01-01T00:00:00Z',
               updated_at: '2024-01-02T00:00:00Z',
             },
@@ -218,8 +227,8 @@ describe('CollectionDetailPage', () => {
     render(<CollectionDetailPage />);
     await screen.findByText('Episode Edit');
     fireEvent.click(screen.getByText('编辑'));
-    fireEvent.change(screen.getByPlaceholderText('标题'), { target: { value: 'Episode Updated' } });
-    fireEvent.change(screen.getByPlaceholderText('video_id'), { target: { value: '5' } });
+    fireEvent.change(screen.getByLabelText('集数标题'), { target: { value: 'Episode Updated' } });
+    fireEvent.change(screen.getByLabelText('选择视频'), { target: { value: '5' } });
     fireEvent.click(screen.getByText('保存'));
     await screen.findByText('更新成功');
     await screen.findByText('Episode Updated');

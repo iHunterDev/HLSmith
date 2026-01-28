@@ -143,6 +143,8 @@ export interface CollectionItem {
   sort_order: number;
   available_from?: string | null;
   available_until?: string | null;
+  thumbnail_url?: string | null;
+  video_title?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -167,6 +169,12 @@ export interface UpdateCollectionRequest {
   title: string;
   description?: string | null;
   cover?: string | null;
+}
+
+export interface CoverUploadResponse {
+  cover_url: string;
+  cover_path?: string;
+  filename?: string;
 }
 
 export interface CreateCollectionItemRequest {

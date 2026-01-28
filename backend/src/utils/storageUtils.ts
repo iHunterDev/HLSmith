@@ -10,7 +10,8 @@ export class StorageUtils {
       UPLOAD_CONFIG.UPLOADS_DIR,
       path.join(UPLOAD_CONFIG.TEMP_DIR, 'chunks'), // 为分片中间件创建临时目录
       path.join(UPLOAD_CONFIG.STORAGE_BASE, 'hls'),
-      path.join(UPLOAD_CONFIG.STORAGE_BASE, 'thumbnails')
+      path.join(UPLOAD_CONFIG.STORAGE_BASE, 'thumbnails'),
+      path.join(UPLOAD_CONFIG.STORAGE_BASE, 'covers')
     ];
 
     for (const dir of directories) {
@@ -182,5 +183,25 @@ export class StorageUtils {
       : `${req.protocol}://${req.get('host')}`;
     
     return `${baseUrl}/api/stream/${videoId}/playlist.m3u8`;
+  }
+
+  static buildCoverUrl(coverPath: string | null, req: any): string | undefined {
+    if (!coverPath) {
+      return undefined;
+    }
+
+    const baseUrl = process.env.BASE_URL
+      ? process.env.BASE_URL
+      : `${req.protocol}://${req.get('host')}`;
+
+    if (coverPath.includes('storage/covers/')) {
+      const relativePath = coverPath.substring(
+        coverPath.indexOf('storage/covers/') + 'storage/covers/'.length
+      );
+      return `${baseUrl}/covers/${relativePath}`;
+    }
+
+    const cleanPath = coverPath.startsWith('/') ? coverPath.substring(1) : coverPath;
+    return `${baseUrl}/covers/${cleanPath}`;
   }
 }

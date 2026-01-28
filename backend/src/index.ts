@@ -58,6 +58,7 @@ app.get('/api/health', (req, res) => {
 
 // Static file serving for uploads with year/month structure support
 app.use('/thumbnails', express.static(path.join(process.cwd(), 'storage/thumbnails')));
+app.use('/covers', express.static(path.join(process.cwd(), 'storage/covers')));
 
 // Routes
 app.use('/api/auth', authRoutes);

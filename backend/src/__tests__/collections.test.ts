@@ -57,6 +57,7 @@ beforeAll(async () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hlsmith-'));
   const dbPath = path.join(tempDir, 'test.sqlite');
   process.env.DB_PATH = dbPath;
+  process.env.BASE_URL = 'http://localhost:3001';
 
   const { initializeDatabase, DatabaseManager } = await import('../database/init');
   await initializeDatabase();
@@ -100,14 +101,19 @@ test('getCollections returns collections list and total', async () => {
 });
 
 test('getCollectionDetail returns collection and items ordered', async () => {
-  await seedUserAndVideo();
+  const { videoId } = await seedUserAndVideo();
 
   await db.run(
     'INSERT INTO collections (title, description, cover, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
     ['Series A', 'desc', 'cover', '2024-01-01T00:00:00Z', '2024-01-01T00:00:00Z'],
   );
   const collection = await db.get('SELECT id FROM collections WHERE title = ?', ['Series A']);
-  const video = await db.get('SELECT id FROM videos WHERE title = ?', ['Video 1']);
+  const video = await db.get('SELECT id FROM videos WHERE id = ?', [videoId]);
+
+  await db.run('UPDATE videos SET thumbnail_path = ? WHERE id = ?', [
+    `storage/thumbnails/2025/01/${videoId}/thumbnail.jpg`,
+    video.id,
+  ]);
 
   await db.run(
     'INSERT INTO collection_items (collection_id, video_id, title, sort_order, available_from, available_until, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
@@ -148,6 +154,11 @@ test('getCollectionDetail returns collection and items ordered', async () => {
   assert.equal(res.payload.data.items.length, 2);
   assert.equal(res.payload.data.items[0].title, 'Episode 1');
   assert.equal(res.payload.data.items[1].title, 'Episode 2');
+  assert.equal(res.payload.data.items[0].video_title, 'Video 1');
+  assert.equal(
+    res.payload.data.items[0].thumbnail_url,
+    `http://localhost:3001/thumbnails/2025/01/${videoId}/thumbnail.jpg`,
+  );
 });
 
 test('createCollection creates collection', async () => {
@@ -284,4 +295,136 @@ test('deleteCollection validates id', async () => {
 
   assert.equal(res.statusCode, 400);
   assert.equal(res.payload.error.code, ErrorCode.INVALID_PARAMS);
+});
+
+test('uploadCollectionCover returns cover url', async () => {
+  const { uploadCollectionCover } = await import('../controllers/collectionController');
+
+  const req = {
+    file: {
+      path: 'storage/covers/2025/01/cover.jpg',
+      filename: 'cover.jpg',
+    },
+    protocol: 'http',
+    get: (key: string) => (key === 'host' ? 'localhost:3001' : undefined),
+  } as unknown as Request;
+
+  const res = createMockResponse();
+  await uploadCollectionCover(req, res as unknown as Response);
+
+  assert.equal(res.statusCode, 201);
+  assert.equal(res.payload.success, true);
+  assert.equal(res.payload.data.cover_url, 'http://localhost:3001/covers/2025/01/cover.jpg');
+});
+
+test('handleCoverMulterError rejects unsupported cover format', async () => {
+  const { handleCoverMulterError } = await import('../middleware/coverUpload');
+
+  const res = createMockResponse();
+  const next = () => {
+    throw new Error('next should not be called');
+  };
+
+  const error = new Error('Unsupported cover format. File: bad.txt, Type: text/plain, Extension: .txt');
+  await handleCoverMulterError(error, {} as Request, res as unknown as Response, next);
+
+  assert.equal(res.statusCode, 400);
+  assert.equal(res.payload.error, 'Unsupported file format');
+});
+
+test('handleCoverMulterError returns file size limit', async () => {
+  const { handleCoverMulterError } = await import('../middleware/coverUpload');
+  const { default: multer } = await import('multer');
+
+  const res = createMockResponse();
+  const next = () => {
+    throw new Error('next should not be called');
+  };
+
+  const error = new multer.MulterError('LIMIT_FILE_SIZE');
+  await handleCoverMulterError(error, {} as Request, res as unknown as Response, next);
+
+  assert.equal(res.statusCode, 400);
+  assert.equal(res.payload.error, 'File too large');
+});
+
+test('uploadCollectionCover validates missing file', async () => {
+  const { uploadCollectionCover } = await import('../controllers/collectionController');
+
+  const req = {
+    protocol: 'http',
+    get: (key: string) => (key === 'host' ? 'localhost:3001' : undefined),
+  } as unknown as Request;
+  const res = createMockResponse();
+
+  await uploadCollectionCover(req, res as unknown as Response);
+
+  assert.equal(res.statusCode, 400);
+  assert.equal(res.payload.error.code, ErrorCode.INVALID_PARAMS);
+});
+
+test('handleCoverMulterError returns unexpected file field', async () => {
+  const { handleCoverMulterError } = await import('../middleware/coverUpload');
+  const { default: multer } = await import('multer');
+
+  const res = createMockResponse();
+  const next = () => {
+    throw new Error('next should not be called');
+  };
+
+  const error = new multer.MulterError('LIMIT_UNEXPECTED_FILE');
+  await handleCoverMulterError(error, {} as Request, res as unknown as Response, next);
+
+  assert.equal(res.statusCode, 400);
+  assert.equal(res.payload.error, 'Unexpected file field');
+});
+
+test('handleCoverMulterError returns too many files', async () => {
+  const { handleCoverMulterError } = await import('../middleware/coverUpload');
+  const { default: multer } = await import('multer');
+
+  const res = createMockResponse();
+  const next = () => {
+    throw new Error('next should not be called');
+  };
+
+  const error = new multer.MulterError('LIMIT_FILE_COUNT');
+  await handleCoverMulterError(error, {} as Request, res as unknown as Response, next);
+
+  assert.equal(res.statusCode, 400);
+  assert.equal(res.payload.error, 'Too many files');
+});
+
+test('handleCoverMulterError returns generic multer error', async () => {
+  const { handleCoverMulterError } = await import('../middleware/coverUpload');
+  const { default: multer } = await import('multer');
+
+  const res = createMockResponse();
+  const next = () => {
+    throw new Error('next should not be called');
+  };
+
+  const error = new multer.MulterError('LIMIT_PART_COUNT');
+  await handleCoverMulterError(error, {} as Request, res as unknown as Response, next);
+
+  assert.equal(res.statusCode, 400);
+  assert.equal(res.payload.error, 'File upload error');
+});
+
+test('handleCoverMulterError passes non-multer errors to next', async () => {
+  const { handleCoverMulterError } = await import('../middleware/coverUpload');
+
+  const res = createMockResponse();
+  let nextCalled = false;
+  const next = (err?: any) => {
+    if (err) {
+      nextCalled = true;
+    }
+  };
+
+  const error = new Error('Some other error');
+  await handleCoverMulterError(error, {} as Request, res as unknown as Response, next);
+
+  assert.equal(nextCalled, true);
+  assert.equal(res.statusCode, undefined);
 });
