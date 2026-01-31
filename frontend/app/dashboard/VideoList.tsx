@@ -457,7 +457,7 @@ export default function VideoList({ refreshTrigger }: VideoListProps) {
                           )}
                         </div>
                         <p className="text-sm text-gray-500">
-                          {video.original_filename} • {(video.file_size / 1024 / 1024).toFixed(1)} MB
+                          {(video.file_size / 1024 / 1024).toFixed(1)} MB
                           {video.duration && ` • ${Math.floor(video.duration / 60)}:${String(video.duration % 60).padStart(2, '0')}`}
                         </p>
                         <div className="flex items-center gap-2 mt-1">
