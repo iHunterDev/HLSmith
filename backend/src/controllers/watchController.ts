@@ -39,16 +39,14 @@ export async function sendHeartbeat(req: Request, res: Response): Promise<void> 
     }
 
     const now = new Date();
-    const nowSeconds = Math.floor(now.getTime() / 1000);
-    const verification = verifyViewerKey(viewer_key, sharedSecret, nowSeconds);
+    const verification = verifyViewerKey(viewer_key, sharedSecret);
     if (!verification.valid) {
-      const message = verification.errorCode === 'VIEWER_KEY_EXPIRED' ? 'viewer_key expired' : 'viewer_key invalid';
       return ResponseHelper.error(
         res,
         401,
         ErrorType.AUTHENTICATION_ERROR,
         ErrorCode.INVALID_VIEWER_KEY,
-        message,
+        'viewer_key invalid',
         { reason: verification.errorCode }
       );
     }
@@ -123,16 +121,14 @@ export async function getWatchSummary(req: Request, res: Response): Promise<void
     }
 
     const now = new Date();
-    const nowSeconds = Math.floor(now.getTime() / 1000);
-    const verification = verifyViewerKey(viewerKey, sharedSecret, nowSeconds);
+    const verification = verifyViewerKey(viewerKey, sharedSecret);
     if (!verification.valid) {
-      const message = verification.errorCode === 'VIEWER_KEY_EXPIRED' ? 'viewer_key expired' : 'viewer_key invalid';
       return ResponseHelper.error(
         res,
         401,
         ErrorType.AUTHENTICATION_ERROR,
         ErrorCode.INVALID_VIEWER_KEY,
-        message,
+        'viewer_key invalid',
         { reason: verification.errorCode }
       );
     }

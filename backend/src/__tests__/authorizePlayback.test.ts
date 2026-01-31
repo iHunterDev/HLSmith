@@ -1,4 +1,4 @@
-import { test, beforeAll, afterAll, beforeEach } from 'vitest';
+import { test } from 'vitest';
 import assert from 'node:assert/strict';
 
 import { authorizePlayback } from '../utils/authorizePlayback';
@@ -7,9 +7,8 @@ import { ErrorCode, ErrorType } from '../utils/response';
 
 test('authorizePlayback accepts when viewer_key valid and window open', () => {
   const sharedSecret = 'test-secret';
-  const nowSeconds = 1_700_000_000;
-  const now = new Date(nowSeconds * 1000);
-  const viewerKey = buildViewerKey('user-1', nowSeconds - 10, 60, sharedSecret);
+  const now = new Date(1_700_000_000 * 1000);
+  const viewerKey = buildViewerKey('user-1', sharedSecret);
 
   const result = authorizePlayback({
     viewerKey,
@@ -27,8 +26,7 @@ test('authorizePlayback accepts when viewer_key valid and window open', () => {
 
 test('authorizePlayback rejects invalid viewer_key', () => {
   const sharedSecret = 'test-secret';
-  const nowSeconds = 1_700_000_000;
-  const now = new Date(nowSeconds * 1000);
+  const now = new Date(1_700_000_000 * 1000);
 
   const result = authorizePlayback({
     viewerKey: 'not-base64',
@@ -48,35 +46,10 @@ test('authorizePlayback rejects invalid viewer_key', () => {
   });
 });
 
-test('authorizePlayback rejects expired viewer_key', () => {
-  const sharedSecret = 'test-secret';
-  const nowSeconds = 1_700_000_000;
-  const now = new Date(nowSeconds * 1000);
-  const viewerKey = buildViewerKey('user-1', nowSeconds - 120, 30, sharedSecret);
-
-  const result = authorizePlayback({
-    viewerKey,
-    sharedSecret,
-    now,
-    availableFrom: null,
-    availableUntil: null,
-  });
-
-  assert.deepEqual(result, {
-    authorized: false,
-    httpCode: 401,
-    errorType: ErrorType.AUTHENTICATION_ERROR,
-    errorCode: ErrorCode.INVALID_VIEWER_KEY,
-    message: 'viewer_key expired',
-    details: { reason: 'VIEWER_KEY_EXPIRED' },
-  });
-});
-
 test('authorizePlayback rejects when not available yet', () => {
   const sharedSecret = 'test-secret';
-  const nowSeconds = 1_700_000_000;
-  const now = new Date(nowSeconds * 1000);
-  const viewerKey = buildViewerKey('user-1', nowSeconds - 10, 60, sharedSecret);
+  const now = new Date(1_700_000_000 * 1000);
+  const viewerKey = buildViewerKey('user-1', sharedSecret);
   const availableFrom = new Date(now.getTime() + 60_000);
 
   const result = authorizePlayback({
@@ -99,9 +72,8 @@ test('authorizePlayback rejects when not available yet', () => {
 
 test('authorizePlayback rejects when window expired', () => {
   const sharedSecret = 'test-secret';
-  const nowSeconds = 1_700_000_000;
-  const now = new Date(nowSeconds * 1000);
-  const viewerKey = buildViewerKey('user-1', nowSeconds - 10, 60, sharedSecret);
+  const now = new Date(1_700_000_000 * 1000);
+  const viewerKey = buildViewerKey('user-1', sharedSecret);
   const availableUntil = new Date(now.getTime() - 60_000);
 
   const result = authorizePlayback({

@@ -106,8 +106,7 @@ beforeAll(async () => {
   await initializeDatabase();
   db = DatabaseManager.getInstance();
 
-  const nowSeconds = Math.floor(Date.now() / 1000);
-  viewerKey = buildViewerKey('viewer-1', nowSeconds - 10, 3600, 'test-secret');
+  viewerKey = buildViewerKey('viewer-1', 'test-secret');
 });
 
 afterAll(async () => {

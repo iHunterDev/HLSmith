@@ -102,8 +102,7 @@ beforeEach(async () => {
 
 test('authorizePlayback returns playback token when playable', async () => {
   const { collectionItemId } = await seedBase();
-  const nowSeconds = Math.floor(Date.now() / 1000);
-  const viewerKey = buildViewerKey('user-1', nowSeconds - 10, 3600, 'test-secret');
+  const viewerKey = buildViewerKey('user-1', 'test-secret');
 
   const { authorizePlayback } = await import('../controllers/playbackController');
 
@@ -140,8 +139,7 @@ test('authorizePlayback returns 403 when not available yet', async () => {
     ['2999-01-01T00:00:00Z', collectionItemId],
   );
 
-  const nowSeconds = Math.floor(Date.now() / 1000);
-  const viewerKey = buildViewerKey('user-1', nowSeconds - 10, 3600, 'test-secret');
+  const viewerKey = buildViewerKey('user-1', 'test-secret');
 
   const { authorizePlayback } = await import('../controllers/playbackController');
 

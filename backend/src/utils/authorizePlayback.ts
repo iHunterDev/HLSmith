@@ -26,21 +26,15 @@ export type AuthorizePlaybackResult =
 
 export function authorizePlayback(params: AuthorizePlaybackParams): AuthorizePlaybackResult {
   const { viewerKey, sharedSecret, now, availableFrom, availableUntil } = params;
-  const nowSeconds = Math.floor(now.getTime() / 1000);
-  const verification = verifyViewerKey(viewerKey, sharedSecret, nowSeconds);
+  const verification = verifyViewerKey(viewerKey, sharedSecret);
 
   if (!verification.valid) {
-    const message =
-      verification.errorCode === 'VIEWER_KEY_EXPIRED'
-        ? 'viewer_key expired'
-        : 'viewer_key invalid';
-
     return {
       authorized: false,
       httpCode: 401,
       errorType: ErrorType.AUTHENTICATION_ERROR,
       errorCode: ErrorCode.INVALID_VIEWER_KEY,
-      message,
+      message: 'viewer_key invalid',
       details: { reason: verification.errorCode },
     };
   }
