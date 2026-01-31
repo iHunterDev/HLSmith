@@ -47,13 +47,6 @@ export default function Navbar() {
                 >
                   合集管理
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => router.push('/dashboard/tools')}
-                >
-                  工具
-                </Button>
               </>
             )}
           </div>

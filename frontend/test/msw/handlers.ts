@@ -173,35 +173,4 @@ export const handlers = [
       timestamp: new Date().toISOString(),
     });
   }),
-  http.post(`${API_BASE_URL}/api/playback/authorize`, async ({ request }) => {
-    const body = (await request.json()) as { viewer_key: string; collection_item_id: number };
-    return HttpResponse.json({
-      success: true,
-      code: 200,
-      message: 'ok',
-      data: {
-        playable: true,
-        available_from: null,
-        available_until: null,
-        playback_token: `${body.viewer_key}-${body.collection_item_id}`,
-      },
-      timestamp: new Date().toISOString(),
-    });
-  }),
-  http.get(`${API_BASE_URL}/api/watch/summary`, ({ request }) => {
-    const url = new URL(request.url);
-    const viewerKey = url.searchParams.get('viewer_key') || '';
-    return HttpResponse.json({
-      success: true,
-      code: 200,
-      message: 'ok',
-      data: {
-        total_seconds: 120,
-        collections: [{ collection_id: 1, total_seconds: 120 }],
-        items: [{ collection_item_id: 10, video_id: 2, total_seconds: 120 }],
-      },
-      timestamp: new Date().toISOString(),
-      meta: { request_id: viewerKey },
-    });
-  }),
 ];
