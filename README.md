@@ -126,6 +126,9 @@ HLSmith/
 - `DELETE /api/videos/:id` - Delete video
 
 ### 📺 Video Playback
+- `POST /api/playback/authorize` - Authorize playback, return `playback_token` + `playback_url`
+- `GET /api/playback/stream/:token/playlist.m3u8` - Get tokenized HLS playlist
+- `GET /api/playback/stream/:token/segment_*.ts` - Get tokenized HLS segments
 - `GET /api/stream/:id/playlist.m3u8` - Get HLS playlist
 - `GET /api/stream/:id/segment_*.ts` - Get HLS video segments
 - `GET /api/thumbnails/:id` - Get video thumbnail

@@ -19,7 +19,7 @@ export async function getCollections(req: Request, res: Response): Promise<void>
       id: collection.id,
       title: collection.title,
       description: collection.description,
-      cover: collection.cover,
+      cover: collection.cover ? StorageUtils.buildCoverUrl(collection.cover, req) ?? null : null,
       created_at: collection.created_at,
       updated_at: collection.updated_at,
     }));
@@ -92,7 +92,7 @@ export async function getCollectionDetail(req: Request, res: Response): Promise<
           id: collection.id,
           title: collection.title,
           description: collection.description,
-          cover: collection.cover,
+          cover: collection.cover ? StorageUtils.buildCoverUrl(collection.cover, req) ?? null : null,
           created_at: collection.created_at,
           updated_at: collection.updated_at,
         },
@@ -109,6 +109,7 @@ export async function getCollectionDetail(req: Request, res: Response): Promise<
 export async function createCollection(req: Request, res: Response): Promise<void> {
   try {
     const { title, description, cover } = req.body ?? {};
+    const normalizedCover = StorageUtils.normalizeCoverPath(cover ?? null);
 
     if (!title) {
       return ResponseHelper.validationError(res, '合集标题不能为空');
@@ -116,14 +117,24 @@ export async function createCollection(req: Request, res: Response): Promise<voi
 
     await db.run(
       'INSERT INTO collections (title, description, cover, created_at, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
-      [title, description ?? null, cover ?? null]
+      [title, description ?? null, normalizedCover]
     );
 
     const collection = await db.get(
       'SELECT id, title, description, cover, created_at, updated_at FROM collections WHERE id = last_insert_rowid()'
     );
 
-    ResponseHelper.success(res, { collection }, '合集创建成功', 201);
+    ResponseHelper.success(
+      res,
+      {
+        collection: {
+          ...collection,
+          cover: collection.cover ? StorageUtils.buildCoverUrl(collection.cover, req) ?? null : null,
+        },
+      },
+      '合集创建成功',
+      201
+    );
   } catch (error) {
     console.error('Create collection error:', error);
     ResponseHelper.internalError(res, '创建合集失败');
@@ -138,18 +149,24 @@ export async function updateCollection(req: Request, res: Response): Promise<voi
     }
 
     const { title, description, cover } = req.body ?? {};
+    const normalizedCover = StorageUtils.normalizeCoverPath(cover ?? null);
     if (!title) {
       return ResponseHelper.validationError(res, '合集标题不能为空');
     }
 
-    const existing = await db.get('SELECT id FROM collections WHERE id = ?', [collectionId]);
+    const existing = await db.get('SELECT id, cover FROM collections WHERE id = ?', [collectionId]);
     if (!existing) {
       return ResponseHelper.notFoundError(res, '合集不存在');
     }
 
+    const existingCoverPath = StorageUtils.normalizeCoverPath(existing.cover ?? null);
+    if (normalizedCover && existingCoverPath && normalizedCover !== existingCoverPath) {
+      await StorageUtils.removeFile(existingCoverPath);
+    }
+
     await db.run(
       'UPDATE collections SET title = ?, description = ?, cover = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [title, description ?? null, cover ?? null, collectionId]
+      [title, description ?? null, normalizedCover, collectionId]
     );
 
     const collection = await db.get(
@@ -157,7 +174,16 @@ export async function updateCollection(req: Request, res: Response): Promise<voi
       [collectionId]
     );
 
-    ResponseHelper.success(res, { collection }, '合集更新成功');
+    ResponseHelper.success(
+      res,
+      {
+        collection: {
+          ...collection,
+          cover: collection.cover ? StorageUtils.buildCoverUrl(collection.cover, req) ?? null : null,
+        },
+      },
+      '合集更新成功'
+    );
   } catch (error) {
     console.error('Update collection error:', error);
     ResponseHelper.internalError(res, '更新合集失败');

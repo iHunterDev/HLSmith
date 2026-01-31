@@ -70,6 +70,7 @@
     - playable
     - available_from, available_until
     - playback_token (playable=true 时)
+    - playback_url (playable=true 时, 完整播放地址)
 
 - GET /api/playback/stream/:token
   - token 24h 有效
@@ -99,7 +100,7 @@
 1) GET /api/collections
 2) GET /api/collections/:id (展示可观看时间)
 3) 点击播放: POST /api/playback/authorize
-4) 可播放: 使用 playback_token 启动 HLS 播放
+4) 可播放: 使用 playback_url 启动 HLS 播放
 5) 播放器每 15s 上报 POST /api/watch/heartbeat
 
 ### 小程序

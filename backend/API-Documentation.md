@@ -8,6 +8,7 @@
 - [User Authentication Module](#user-authentication-module)
 - [Video Management Module](#video-management-module)
 - [HLS Conversion Module](#hls-conversion-module)
+- [Playback Authorization Module](#playback-authorization-module)
 - [Streaming Playback Module](#streaming-playback-module)
 - [Video Sharing Module](#video-sharing-module)
 - [Queue Management Module](#queue-management-module)
@@ -744,6 +745,102 @@ Base URL: `/api/hls`
 - `400` - Parameter error or business error (only failed conversion tasks can be retried)
 - `401` - Unauthorized access
 - `404` - Video not found
+
+## Playback Authorization Module
+
+Base URL: `/api/playback`
+
+**Note**: Playback authorization uses `viewer_key` instead of JWT.
+
+### 1. Authorize Playback
+
+#### POST `/api/playback/authorize`
+**Description**: Validate viewer_key and availability window, then issue playback token
+
+**Authentication**: viewer_key in request body
+
+**Request Parameters**:
+```json
+{
+  "viewer_key": "string",
+  "collection_item_id": 123
+}
+```
+
+**Success Response (200)**:
+```json
+{
+  "success": true,
+  "code": 200,
+  "message": "Authorization successful",
+  "data": {
+    "playable": true,
+    "available_from": "2024-01-01T00:00:00.000Z",
+    "available_until": "2024-12-31T23:59:59.000Z",
+    "playback_token": "uuid",
+    "playback_url": "http://localhost:3001/api/playback/stream/{token}/playlist.m3u8"
+  },
+  "timestamp": "2023-12-01T10:00:00.000Z"
+}
+```
+
+**Error Responses**:
+- `400` - Missing or invalid parameters
+- `401` - viewer_key invalid or expired (`INVALID_VIEWER_KEY`)
+- `403` - Not available yet (`NOT_AVAILABLE_YET`)
+- `403` - Content expired (`EXPIRED`)
+- `404` - Collection item not found
+- `500` - Missing viewer_key secret or internal error
+
+### 2. Get Tokenized HLS Playlist
+
+#### GET `/api/playback/stream/:token/playlist.m3u8`
+**Description**: Get HLS playlist via playback token (token valid 24h, window checked each request)
+
+**Authentication**: Playback token
+
+**Response Format**: `application/vnd.apple.mpegurl`
+
+**Success Response (200)**:
+Returns M3U8 format playlist file content
+
+**Response Headers**:
+```
+Content-Type: application/vnd.apple.mpegurl
+Cache-Control: no-cache
+Access-Control-Allow-Origin: *
+```
+
+**Error Responses**:
+- `400` - Invalid token
+- `403` - Not available yet or expired
+- `404` - Token invalid/expired or playlist file not found
+- `500` - Internal error
+
+### 3. Get Tokenized Video Segments
+
+#### GET `/api/playback/stream/:token/segment_:segmentId.ts`
+**Description**: Get HLS segment via playback token (token valid 24h, window checked each request)
+
+**Authentication**: Playback token
+
+**Response Format**: `video/mp2t`
+
+**Success Response (200)**:
+Returns video segment binary data stream
+
+**Response Headers**:
+```
+Content-Type: video/mp2t
+Cache-Control: public, max-age=31536000
+Access-Control-Allow-Origin: *
+```
+
+**Error Responses**:
+- `400` - Invalid token or segment ID
+- `403` - Not available yet or expired
+- `404` - Token invalid/expired or segment file not found
+- `500` - Internal error
 
 ## Streaming Playback Module
 

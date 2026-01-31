@@ -121,6 +121,12 @@ test('authorizePlayback returns playback token when playable', async () => {
   assert.equal(res.payload.success, true);
   assert.equal(res.payload.data.playable, true);
   assert.equal(typeof res.payload.data.playback_token, 'string');
+  assert.equal(typeof res.payload.data.playback_url, 'string');
+  assert.ok(
+    (res.payload.data.playback_url as string).endsWith(
+      `/api/playback/stream/${res.payload.data.playback_token}/playlist.m3u8`
+    )
+  );
 
   const tokenRow = await db.get('SELECT token, collection_item_id FROM playback_tokens');
   assert.equal(tokenRow.collection_item_id, collectionItemId);

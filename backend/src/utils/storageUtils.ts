@@ -3,6 +3,36 @@ import path from 'path';
 import { UPLOAD_CONFIG, getChunkPath, getDatePath } from './uploadConfig';
 
 export class StorageUtils {
+  static normalizeCoverPath(coverPath: string | null | undefined): string | null {
+    if (!coverPath) {
+      return null;
+    }
+
+    const rawPath = coverPath.split('?')[0];
+    const storagePrefix = 'storage/covers/';
+    const coversPrefix = '/covers/';
+
+    if (rawPath.includes(storagePrefix)) {
+      const relativePath = rawPath.substring(rawPath.indexOf(storagePrefix) + storagePrefix.length);
+      return `${storagePrefix}${relativePath}`;
+    }
+
+    const coversIndex = rawPath.indexOf(coversPrefix);
+    if (coversIndex >= 0) {
+      const relativePath = rawPath.substring(coversIndex + coversPrefix.length);
+      return `${storagePrefix}${relativePath}`;
+    }
+
+    if (rawPath.startsWith('covers/')) {
+      return `${storagePrefix}${rawPath.substring('covers/'.length)}`;
+    }
+
+    if (rawPath.startsWith('/')) {
+      return rawPath.substring(1);
+    }
+
+    return rawPath;
+  }
   static async ensureDirectoriesExist(): Promise<void> {
     const directories = [
       UPLOAD_CONFIG.CHUNKS_DIR,
@@ -191,17 +221,29 @@ export class StorageUtils {
     }
 
     const baseUrl = process.env.BASE_URL
-      ? process.env.BASE_URL
+      ? process.env.BASE_URL.replace(/\/$/, '')
       : `${req.protocol}://${req.get('host')}`;
 
-    if (coverPath.includes('storage/covers/')) {
-      const relativePath = coverPath.substring(
-        coverPath.indexOf('storage/covers/') + 'storage/covers/'.length
-      );
+    const rawPath = coverPath.split('?')[0];
+    const storagePrefix = 'storage/covers/';
+    const coversPrefix = '/covers/';
+
+    if (rawPath.includes(storagePrefix)) {
+      const relativePath = rawPath.substring(rawPath.indexOf(storagePrefix) + storagePrefix.length);
       return `${baseUrl}/covers/${relativePath}`;
     }
 
-    const cleanPath = coverPath.startsWith('/') ? coverPath.substring(1) : coverPath;
+    const coversIndex = rawPath.indexOf(coversPrefix);
+    if (coversIndex >= 0) {
+      const relativePath = rawPath.substring(coversIndex + coversPrefix.length);
+      return `${baseUrl}/covers/${relativePath}`;
+    }
+
+    if (rawPath.startsWith('covers/')) {
+      return `${baseUrl}/covers/${rawPath.substring('covers/'.length)}`;
+    }
+
+    const cleanPath = rawPath.startsWith('/') ? rawPath.substring(1) : rawPath;
     return `${baseUrl}/covers/${cleanPath}`;
   }
 }

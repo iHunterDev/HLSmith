@@ -65,6 +65,11 @@ export async function authorizePlayback(req: Request, res: Response): Promise<vo
       [token, item.id, item.video_id, expiresAt]
     );
 
+    const baseUrl = process.env.BASE_URL
+      ? process.env.BASE_URL
+      : `${req.protocol}://${req.get('host')}`;
+    const playbackUrl = `${baseUrl}/api/playback/stream/${token}/playlist.m3u8`;
+
     ResponseHelper.success(
       res,
       {
@@ -72,6 +77,7 @@ export async function authorizePlayback(req: Request, res: Response): Promise<vo
         available_from: item.available_from,
         available_until: item.available_until,
         playback_token: token,
+        playback_url: playbackUrl,
       },
       '授权成功'
     );

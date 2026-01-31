@@ -126,6 +126,9 @@ HLSmith/
 - `DELETE /api/videos/:id` - 删除视频
 
 ### 📺 视频播放
+- `POST /api/playback/authorize` - 播放授权，返回 `playback_token` + `playback_url`
+- `GET /api/playback/stream/:token/playlist.m3u8` - 使用 token 获取播放列表
+- `GET /api/playback/stream/:token/segment_*.ts` - 使用 token 获取视频分片
 - `GET /api/stream/:id/playlist.m3u8` - 获取HLS播放列表
 - `GET /api/stream/:id/segment_*.ts` - 获取HLS视频片段
 - `GET /api/thumbnails/:id` - 获取视频缩略图
