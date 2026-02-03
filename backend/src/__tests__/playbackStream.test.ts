@@ -46,6 +46,7 @@ async function seedToken(params: {
   availableFrom?: string | null;
   availableUntil?: string | null;
   expiresAt: string;
+  ignoreWindow?: boolean;
 }) {
   await db.run(
     'INSERT INTO users (username, email, password, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
@@ -91,8 +92,8 @@ async function seedToken(params: {
   const item = await db.get('SELECT id FROM collection_items WHERE title = ?', ['Episode 1']);
 
   await db.run(
-    'INSERT INTO playback_tokens (token, collection_item_id, video_id, expires_at) VALUES (?, ?, ?, ?)',
-    [params.token, item.id, video.id, params.expiresAt],
+    'INSERT INTO playback_tokens (token, collection_item_id, video_id, expires_at, ignore_window) VALUES (?, ?, ?, ?, ?)',
+    [params.token, item.id, video.id, params.expiresAt, params.ignoreWindow ? 1 : 0],
   );
 }
 
@@ -156,6 +157,32 @@ test('getPlaybackPlaylist returns 403 when not available yet', async () => {
 
   assert.equal(res.statusCode, 403);
   assert.equal(res.payload.error.code, ErrorCode.NOT_AVAILABLE_YET);
+});
+
+test('getPlaybackPlaylist allows ignore_window tokens outside time window', async () => {
+  await seedToken({
+    token: 'token-unlimited',
+    availableFrom: '2999-01-01T00:00:00Z',
+    expiresAt: '2999-01-02T00:00:00Z',
+    ignoreWindow: true,
+  });
+
+  const { getPlaybackPlaylist } = await import('../controllers/playbackController');
+
+  const req = {
+    params: { token: 'token-unlimited' },
+    protocol: 'http',
+    get: (header: string) => (header === 'host' ? 'example.com' : ''),
+  } as unknown as Request;
+  const res = createMockResponse();
+
+  await getPlaybackPlaylist(req, res as unknown as Response);
+
+  if (res.payload) {
+    assert.fail(`unexpected payload: ${JSON.stringify(res.payload)}`);
+  }
+  assert.ok(res.body, 'expected playlist body');
+  assert.equal(res.headers['Content-Type'], 'application/vnd.apple.mpegurl');
 });
 
 test('getPlaybackPlaylist returns modified playlist when valid', async () => {

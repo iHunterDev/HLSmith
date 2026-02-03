@@ -60,9 +60,11 @@ export async function authorizePlayback(req: Request, res: Response): Promise<vo
     const token = crypto.randomUUID();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
+    const ignoreWindow = authResult.scope === 'unlimited';
+
     await db.run(
-      'INSERT INTO playback_tokens (token, collection_item_id, video_id, expires_at) VALUES (?, ?, ?, ?)',
-      [token, item.id, item.video_id, expiresAt]
+      'INSERT INTO playback_tokens (token, collection_item_id, video_id, expires_at, ignore_window) VALUES (?, ?, ?, ?, ?)',
+      [token, item.id, item.video_id, expiresAt, ignoreWindow ? 1 : 0]
     );
 
     const baseUrl = process.env.BASE_URL
@@ -89,7 +91,7 @@ export async function authorizePlayback(req: Request, res: Response): Promise<vo
 
 async function getPlaybackContext(token: string) {
   return db.get(
-    `SELECT pt.token, pt.expires_at,
+    `SELECT pt.token, pt.expires_at, pt.ignore_window,
             ci.available_from, ci.available_until,
             v.id as video_id, v.hls_path, v.status
      FROM playback_tokens pt
@@ -123,16 +125,18 @@ export async function getPlaybackPlaylist(req: Request, res: Response): Promise<
       return ResponseHelper.notFoundError(res, '播放令牌无效或已过期');
     }
 
-    const windowResult = isPlayableWindow(ctx.available_from, ctx.available_until, now);
-    if (!windowResult.playable) {
-      if (windowResult.reason === 'NOT_AVAILABLE_YET') {
-        return ResponseHelper.error(res, 403, ErrorType.BUSINESS_ERROR, ErrorCode.NOT_AVAILABLE_YET, '未到播放时间', {
-          available_from: ctx.available_from,
+    if (!ctx.ignore_window) {
+      const windowResult = isPlayableWindow(ctx.available_from, ctx.available_until, now);
+      if (!windowResult.playable) {
+        if (windowResult.reason === 'NOT_AVAILABLE_YET') {
+          return ResponseHelper.error(res, 403, ErrorType.BUSINESS_ERROR, ErrorCode.NOT_AVAILABLE_YET, '未到播放时间', {
+            available_from: ctx.available_from,
+          });
+        }
+        return ResponseHelper.error(res, 403, ErrorType.BUSINESS_ERROR, ErrorCode.EXPIRED, '已过下架时间', {
+          available_until: ctx.available_until,
         });
       }
-      return ResponseHelper.error(res, 403, ErrorType.BUSINESS_ERROR, ErrorCode.EXPIRED, '已过下架时间', {
-        available_until: ctx.available_until,
-      });
     }
 
     if (ctx.status !== VideoStatus.COMPLETED || !ctx.hls_path) {
@@ -184,16 +188,18 @@ export async function getPlaybackSegment(req: Request, res: Response): Promise<v
       return ResponseHelper.notFoundError(res, '播放令牌无效或已过期');
     }
 
-    const windowResult = isPlayableWindow(ctx.available_from, ctx.available_until, now);
-    if (!windowResult.playable) {
-      if (windowResult.reason === 'NOT_AVAILABLE_YET') {
-        return ResponseHelper.error(res, 403, ErrorType.BUSINESS_ERROR, ErrorCode.NOT_AVAILABLE_YET, '未到播放时间', {
-          available_from: ctx.available_from,
+    if (!ctx.ignore_window) {
+      const windowResult = isPlayableWindow(ctx.available_from, ctx.available_until, now);
+      if (!windowResult.playable) {
+        if (windowResult.reason === 'NOT_AVAILABLE_YET') {
+          return ResponseHelper.error(res, 403, ErrorType.BUSINESS_ERROR, ErrorCode.NOT_AVAILABLE_YET, '未到播放时间', {
+            available_from: ctx.available_from,
+          });
+        }
+        return ResponseHelper.error(res, 403, ErrorType.BUSINESS_ERROR, ErrorCode.EXPIRED, '已过下架时间', {
+          available_until: ctx.available_until,
         });
       }
-      return ResponseHelper.error(res, 403, ErrorType.BUSINESS_ERROR, ErrorCode.EXPIRED, '已过下架时间', {
-        available_until: ctx.available_until,
-      });
     }
 
     if (ctx.status !== VideoStatus.COMPLETED || !ctx.hls_path) {

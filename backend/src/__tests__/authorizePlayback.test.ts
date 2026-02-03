@@ -8,7 +8,7 @@ import { ErrorCode, ErrorType } from '../utils/response';
 test('authorizePlayback accepts when viewer_key valid and window open', () => {
   const sharedSecret = 'test-secret';
   const now = new Date(1_700_000_000 * 1000);
-  const viewerKey = buildViewerKey('user-1', sharedSecret);
+  const viewerKey = buildViewerKey('user-1', 'normal', sharedSecret);
 
   const result = authorizePlayback({
     viewerKey,
@@ -21,6 +21,7 @@ test('authorizePlayback accepts when viewer_key valid and window open', () => {
   assert.deepEqual(result, {
     authorized: true,
     userId: 'user-1',
+    scope: 'normal',
   });
 });
 
@@ -49,7 +50,7 @@ test('authorizePlayback rejects invalid viewer_key', () => {
 test('authorizePlayback rejects when not available yet', () => {
   const sharedSecret = 'test-secret';
   const now = new Date(1_700_000_000 * 1000);
-  const viewerKey = buildViewerKey('user-1', sharedSecret);
+  const viewerKey = buildViewerKey('user-1', 'normal', sharedSecret);
   const availableFrom = new Date(now.getTime() + 60_000);
 
   const result = authorizePlayback({
@@ -73,7 +74,7 @@ test('authorizePlayback rejects when not available yet', () => {
 test('authorizePlayback rejects when window expired', () => {
   const sharedSecret = 'test-secret';
   const now = new Date(1_700_000_000 * 1000);
-  const viewerKey = buildViewerKey('user-1', sharedSecret);
+  const viewerKey = buildViewerKey('user-1', 'normal', sharedSecret);
   const availableUntil = new Date(now.getTime() - 60_000);
 
   const result = authorizePlayback({
@@ -91,5 +92,27 @@ test('authorizePlayback rejects when window expired', () => {
     errorCode: ErrorCode.EXPIRED,
     message: 'content expired',
     details: { availableUntil },
+  });
+});
+
+test('authorizePlayback accepts unlimited scope regardless of window', () => {
+  const sharedSecret = 'test-secret';
+  const now = new Date(1_700_000_000 * 1000);
+  const viewerKey = buildViewerKey('user-1', 'unlimited', sharedSecret);
+  const availableFrom = new Date(now.getTime() + 60_000);
+  const availableUntil = new Date(now.getTime() - 60_000);
+
+  const result = authorizePlayback({
+    viewerKey,
+    sharedSecret,
+    now,
+    availableFrom,
+    availableUntil,
+  });
+
+  assert.deepEqual(result, {
+    authorized: true,
+    userId: 'user-1',
+    scope: 'unlimited',
   });
 });

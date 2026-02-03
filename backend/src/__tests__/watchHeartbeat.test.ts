@@ -101,7 +101,7 @@ beforeEach(async () => {
 });
 
 test('heartbeat creates session and increments total_seconds', async () => {
-  const viewerKey = buildViewerKey('user-1', 'test-secret');
+  const viewerKey = buildViewerKey('user-1', 'normal', 'test-secret');
 
   const { sendHeartbeat } = await import('../controllers/watchController');
 
@@ -146,7 +146,7 @@ test('heartbeat rejects invalid viewer_key', async () => {
 
 test('heartbeat rejects when too frequent', async () => {
   const now = new Date();
-  const viewerKey = buildViewerKey('user-1', 'test-secret');
+  const viewerKey = buildViewerKey('user-1', 'normal', 'test-secret');
 
   const item = await db.get('SELECT video_id FROM collection_items WHERE id = ?', [collectionItemId]);
 

@@ -202,6 +202,7 @@ export async function initializeDatabase(): Promise<void> {
       collection_item_id INTEGER NOT NULL,
       video_id INTEGER NOT NULL,
       expires_at DATETIME NOT NULL,
+      ignore_window INTEGER NOT NULL DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (collection_item_id) REFERENCES collection_items (id) ON DELETE CASCADE,
       FOREIGN KEY (video_id) REFERENCES videos (id) ON DELETE CASCADE

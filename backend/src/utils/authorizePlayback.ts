@@ -14,6 +14,7 @@ export type AuthorizePlaybackResult =
   | {
       authorized: true;
       userId: string;
+      scope: 'normal' | 'unlimited';
     }
   | {
       authorized: false;
@@ -36,6 +37,14 @@ export function authorizePlayback(params: AuthorizePlaybackParams): AuthorizePla
       errorCode: ErrorCode.INVALID_VIEWER_KEY,
       message: 'viewer_key invalid',
       details: { reason: verification.errorCode },
+    };
+  }
+
+  if (verification.scope === 'unlimited') {
+    return {
+      authorized: true,
+      userId: verification.userId,
+      scope: verification.scope,
     };
   }
 
@@ -66,5 +75,6 @@ export function authorizePlayback(params: AuthorizePlaybackParams): AuthorizePla
   return {
     authorized: true,
     userId: verification.userId,
+    scope: verification.scope,
   };
 }

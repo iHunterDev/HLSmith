@@ -111,7 +111,7 @@ beforeAll(async () => {
   await initializeDatabase();
   db = DatabaseManager.getInstance();
 
-  viewerKey = buildViewerKey('viewer-1', 'test-secret');
+  viewerKey = buildViewerKey('viewer-1', 'normal', 'test-secret');
 });
 
 afterAll(async () => {

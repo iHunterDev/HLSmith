@@ -4,16 +4,18 @@
 - HLSmith 作为主数据源，管理合集/集数、播放可用性与学习时长统计。
 - WordPress 负责展示与调用授权接口，小程序通过 API 拉取并上报。
 - 动态 HLS URL 24h 有效，主要用于播放可用性校验，不绑定用户。
-- viewer_key 24h 有效，用于学习时长统计。
+- viewer_key 由 WordPress 插件服务端生成，用于学习时长统计与播放权限控制（有效期由 WP 侧策略决定）。
 
 ## 身份体系 (不接入 HLSmith 用户)
 - viewer_key 由 WordPress 插件服务端生成并下发。
-- 建议格式:
-  - viewer_key = base64(userId.issuedAt.ttl.signature)
-  - signature = HMAC_SHA256(userId|issuedAt|ttl, shared_secret)
+- 格式:
+  - viewer_key = base64(userId.scope.signature)
+  - scope in { normal, unlimited }
+  - signature = HMAC_SHA256(userId|scope, shared_secret)
 - HLSmith 校验:
   - HMAC 正确
-  - issuedAt + ttl 未过期
+  - scope 合法
+- 旧格式不兼容
 - shared_secret 仅存于 WP 服务端，小程序只拿 viewer_key。
 
 ## 数据模型 (HLSmith)
@@ -54,6 +56,7 @@
 - 二者皆空: 始终可播
 - 二者皆有: 仅在区间内可播
 - 判定: now 必须落在允许范围内
+- viewer_key scope=unlimited: 跳过时间窗限制
 
 ## API 设计 (HLSmith)
 
@@ -65,7 +68,7 @@
 ### 播放授权与动态 HLS
 - POST /api/playback/authorize
   - 入参: viewer_key, collection_item_id
-  - 校验: viewer_key 合法 + 时间窗
+  - 校验: viewer_key 合法（含 scope） + 时间窗
   - 返回:
     - playable
     - available_from, available_until
@@ -128,7 +131,7 @@
 
 ## 错误返回约定
 - 不可播放: playable=false + 返回可播放时间
-- viewer_key 过期或非法: 401 + error_code=INVALID_VIEWER_KEY
+- viewer_key 非法: 401 + error_code=INVALID_VIEWER_KEY
 - 未到播放时间: 403 + error_code=NOT_AVAILABLE_YET
 - 已过下架时间: 403 + error_code=EXPIRED
 
@@ -140,7 +143,7 @@
 
 ### 阶段 1: HLSmith
 - 完成数据模型: collections, collection_items, watch_sessions
-- 实现可播放时间窗判断与 viewer_key 验签 (HMAC + 过期)
+- 实现可播放时间窗判断与 viewer_key 验签 (HMAC + scope)
 - 实现核心 API:
   - GET /api/collections
   - GET /api/collections/:id
@@ -195,7 +198,7 @@
 ### HLSmith
 - [x] 设计/创建数据表: collections, collection_items, watch_sessions
 - [x] 实现可播放时间窗判断工具函数
-- [x] 实现 viewer_key 验签逻辑 (HMAC + 过期)
+- [x] 实现 viewer_key 验签逻辑 (HMAC + scope)
 - [x] 实现 GET /api/collections
 - [x] 实现 GET /api/collections/:id (含 items 与可播时间)
 - [x] 实现 POST /api/playback/authorize

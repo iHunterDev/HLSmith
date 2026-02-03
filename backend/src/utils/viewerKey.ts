@@ -4,14 +4,18 @@ export type ViewerKeyVerificationResult =
   | {
       valid: true;
       userId: string;
+      scope: ViewerKeyScope;
     }
   | {
       valid: false;
       errorCode: 'INVALID_VIEWER_KEY_FORMAT' | 'INVALID_VIEWER_KEY_SIGNATURE';
     };
 
+export type ViewerKeyScope = 'normal' | 'unlimited';
+
 type ParsedViewerKey = {
   userId: string;
+  scope: ViewerKeyScope;
   signature: string;
 };
 
@@ -24,21 +28,25 @@ function parseViewerKey(viewerKey: string): ParsedViewerKey | null {
   }
 
   const parts = decoded.split('.');
-  if (parts.length !== 2) {
+  if (parts.length !== 3) {
     return null;
   }
 
-  const [userId, signature] = parts;
+  const [userId, scopeRaw, signature] = parts;
 
-  if (!userId || !signature) {
+  if (!userId || !scopeRaw || !signature) {
     return null;
   }
 
-  return { userId, signature };
+  if (scopeRaw !== 'normal' && scopeRaw !== 'unlimited') {
+    return null;
+  }
+
+  return { userId, scope: scopeRaw, signature };
 }
 
-function computeSignature(userId: string, sharedSecret: string): string {
-  return crypto.createHmac('sha256', sharedSecret).update(userId).digest('hex');
+function computeSignature(userId: string, scope: ViewerKeyScope, sharedSecret: string): string {
+  return crypto.createHmac('sha256', sharedSecret).update(`${userId}|${scope}`).digest('hex');
 }
 
 function safeEqualHex(a: string, b: string): boolean {
@@ -59,18 +67,18 @@ export function verifyViewerKey(
     return { valid: false, errorCode: 'INVALID_VIEWER_KEY_FORMAT' };
   }
 
-  const { userId, signature } = parsed;
-  const expected = computeSignature(userId, sharedSecret);
+  const { userId, scope, signature } = parsed;
+  const expected = computeSignature(userId, scope, sharedSecret);
 
   if (!safeEqualHex(signature, expected)) {
     return { valid: false, errorCode: 'INVALID_VIEWER_KEY_SIGNATURE' };
   }
 
-  return { valid: true, userId };
+  return { valid: true, userId, scope };
 }
 
-export function buildViewerKey(userId: string, sharedSecret: string): string {
-  const signature = computeSignature(userId, sharedSecret);
-  const raw = `${userId}.${signature}`;
+export function buildViewerKey(userId: string, scope: ViewerKeyScope, sharedSecret: string): string {
+  const signature = computeSignature(userId, scope, sharedSecret);
+  const raw = `${userId}.${scope}.${signature}`;
   return Buffer.from(raw, 'utf8').toString('base64');
 }

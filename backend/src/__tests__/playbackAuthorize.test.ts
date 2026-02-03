@@ -102,7 +102,7 @@ beforeEach(async () => {
 
 test('authorizePlayback returns playback token when playable', async () => {
   const { collectionItemId } = await seedBase();
-  const viewerKey = buildViewerKey('user-1', 'test-secret');
+  const viewerKey = buildViewerKey('user-1', 'normal', 'test-secret');
 
   const { authorizePlayback } = await import('../controllers/playbackController');
 
@@ -127,9 +127,10 @@ test('authorizePlayback returns playback token when playable', async () => {
     )
   );
 
-  const tokenRow = await db.get('SELECT token, collection_item_id FROM playback_tokens');
+  const tokenRow = await db.get('SELECT token, collection_item_id, ignore_window FROM playback_tokens');
   assert.equal(tokenRow.collection_item_id, collectionItemId);
   assert.equal(tokenRow.token, res.payload.data.playback_token);
+  assert.equal(tokenRow.ignore_window, 0);
 });
 
 test('authorizePlayback returns 403 when not available yet', async () => {
@@ -139,7 +140,7 @@ test('authorizePlayback returns 403 when not available yet', async () => {
     ['2999-01-01T00:00:00Z', collectionItemId],
   );
 
-  const viewerKey = buildViewerKey('user-1', 'test-secret');
+  const viewerKey = buildViewerKey('user-1', 'normal', 'test-secret');
 
   const { authorizePlayback } = await import('../controllers/playbackController');
 
@@ -156,4 +157,32 @@ test('authorizePlayback returns 403 when not available yet', async () => {
   assert.equal(res.statusCode, 403);
   assert.equal(res.payload.error.type, ErrorType.BUSINESS_ERROR);
   assert.equal(res.payload.error.code, ErrorCode.NOT_AVAILABLE_YET);
+});
+
+test('authorizePlayback allows unlimited scope even when not available yet', async () => {
+  const { collectionItemId } = await seedBase();
+  await db.run(
+    'UPDATE collection_items SET available_from = ? WHERE id = ?',
+    ['2999-01-01T00:00:00Z', collectionItemId],
+  );
+
+  const viewerKey = buildViewerKey('user-1', 'unlimited', 'test-secret');
+
+  const { authorizePlayback } = await import('../controllers/playbackController');
+
+  const req = {
+    body: {
+      viewer_key: viewerKey,
+      collection_item_id: collectionItemId,
+    },
+  } as unknown as Request;
+  const res = createMockResponse();
+
+  await authorizePlayback(req, res as unknown as Response);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.payload.success, true);
+
+  const tokenRow = await db.get('SELECT ignore_window FROM playback_tokens');
+  assert.equal(tokenRow.ignore_window, 1);
 });

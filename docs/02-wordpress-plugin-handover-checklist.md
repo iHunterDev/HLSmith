@@ -9,9 +9,9 @@
 - 必要环境变量清单：`/Users/ihunterdev/Code/HLSmith/AGENTS.md`
 
 ## 2. 对接目标与关键结论
-- WordPress 不接入 HLSmith 用户体系，仅生成 `viewer_key` 作为观看与学习统计凭证。
+- WordPress 不接入 HLSmith 用户体系，仅生成 `viewer_key` 作为观看与学习统计凭证（含 scope 权限）。
 - WordPress 插件充当中转层，不直接暴露 HLSmith API 给前端或小程序。
-- 动态 HLS URL 有效期 24h，不绑定用户；`viewer_key` 24h 有效，用于学习时长统计。
+- 动态 HLS URL 有效期 24h，不绑定用户；`viewer_key` 用于学习时长统计与播放权限（有效期由 WP 侧策略决定）。
 - 文章=合集：WordPress 文章通过自定义字段 `hlsmith_collection_id` 绑定 HLSmith collection。
 
 ## 3. HLSmith 已提供的能力（对接依赖）
@@ -67,11 +67,13 @@
 
 ## 5. viewer_key 生成规则（WP 插件服务端）
 - 建议格式：
-  - `viewer_key = base64(userId.issuedAt.ttl.signature)`
-  - `signature = HMAC_SHA256(userId|issuedAt|ttl, shared_secret)`
+  - `viewer_key = base64(userId.scope.signature)`
+  - `scope in { normal, unlimited }`
+  - `signature = HMAC_SHA256(userId|scope, shared_secret)`
 - HLSmith 校验：
   - HMAC 正确
-  - `issuedAt + ttl` 未过期
+  - scope 合法
+- 旧格式不兼容
 - `shared_secret` 仅存于 WP 服务端，小程序/前端只拿 `viewer_key`
 
 ## 6. 播放与统计流程（联调顺序）
@@ -88,7 +90,7 @@
 
 ## 8. 错误处理约定
 - 不可播放：`playable=false` + 返回可播放时间
-- viewer_key 过期/非法：`401 INVALID_VIEWER_KEY`
+- viewer_key 非法：`401 INVALID_VIEWER_KEY`
 - 未到播放时间：`403 NOT_AVAILABLE_YET`
 - 已过下架时间：`403 EXPIRED`
 
