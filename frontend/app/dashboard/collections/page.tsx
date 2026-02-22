@@ -83,7 +83,15 @@ export default function CollectionsPage() {
           cover: formCover.trim() || null,
         });
         setCollections((prev) =>
-          prev.map((item) => (item.id === editingId ? updated : item))
+          prev.map((item) =>
+            item.id === editingId
+              ? {
+                  ...item,
+                  ...updated,
+                  cover: updated.cover ?? item.cover,
+                }
+              : item
+          )
         );
         setActionMessage('更新成功');
       } else {
@@ -195,7 +203,7 @@ export default function CollectionsPage() {
                 </div>
               </section>
 
-              <aside className="space-y-4">
+              <aside className="space-y-4 lg:sticky lg:top-0 lg:max-h-screen lg:overflow-auto">
                 <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>

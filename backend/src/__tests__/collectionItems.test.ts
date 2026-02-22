@@ -14,6 +14,7 @@ type DbInstance = {
 };
 
 let db: DbInstance;
+const originalBaseUrl = process.env.BASE_URL;
 
 function createMockResponse() {
   return {
@@ -38,7 +39,7 @@ async function seedUserVideoAndCollection(): Promise<{ videoId: number; collecti
   const user = await db.get('SELECT id FROM users WHERE username = ?', ['user1']);
 
   await db.run(
-    'INSERT INTO videos (user_id, title, original_filename, original_filepath, file_size, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO videos (user_id, title, original_filename, original_filepath, file_size, status, thumbnail_path, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
     [
       user.id,
       'Video 1',
@@ -46,11 +47,16 @@ async function seedUserVideoAndCollection(): Promise<{ videoId: number; collecti
       '/tmp/video.mp4',
       100,
       'uploaded',
+      null,
       '2024-01-01T00:00:00Z',
       '2024-01-01T00:00:00Z',
     ],
   );
   const video = await db.get('SELECT id FROM videos WHERE title = ?', ['Video 1']);
+  await db.run('UPDATE videos SET thumbnail_path = ? WHERE id = ?', [
+    `storage/thumbnails/2025/01/${video.id}/thumbnail.jpg`,
+    video.id,
+  ]);
 
   await db.run(
     'INSERT INTO collections (title, description, cover, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
@@ -62,6 +68,7 @@ async function seedUserVideoAndCollection(): Promise<{ videoId: number; collecti
 }
 
 beforeAll(async () => {
+  process.env.BASE_URL = 'http://localhost:3001';
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hlsmith-'));
   const dbPath = path.join(tempDir, 'test.sqlite');
   process.env.DB_PATH = dbPath;
@@ -74,6 +81,11 @@ beforeAll(async () => {
 afterAll(async () => {
   if (db) {
     await db.close();
+  }
+  if (originalBaseUrl === undefined) {
+    delete process.env.BASE_URL;
+  } else {
+    process.env.BASE_URL = originalBaseUrl;
   }
 });
 
@@ -97,6 +109,8 @@ test('createCollectionItem creates item', async () => {
       available_from: '2024-01-01T00:00:00Z',
       available_until: '2024-02-01T00:00:00Z',
     },
+    protocol: 'http',
+    get: (key: string) => (key === 'host' ? 'localhost:3001' : undefined),
   } as Request;
 
   const res = createMockResponse();
@@ -105,6 +119,11 @@ test('createCollectionItem creates item', async () => {
   assert.equal(res.statusCode, 201);
   assert.equal(res.payload.success, true);
   assert.equal(res.payload.data.item.title, 'Episode 1');
+  assert.equal(res.payload.data.item.video_title, 'Video 1');
+  assert.equal(
+    res.payload.data.item.thumbnail_url,
+    `http://localhost:3001/thumbnails/2025/01/${videoId}/thumbnail.jpg`
+  );
 
   const row = await db.get('SELECT title, sort_order FROM collection_items WHERE title = ?', ['Episode 1']);
   assert.equal(row.title, 'Episode 1');
@@ -181,6 +200,8 @@ test('updateCollectionItem updates item', async () => {
       available_from: '2024-01-05T00:00:00Z',
       available_until: '2024-02-01T00:00:00Z',
     },
+    protocol: 'http',
+    get: (key: string) => (key === 'host' ? 'localhost:3001' : undefined),
   } as unknown as Request;
 
   const res = createMockResponse();
@@ -189,6 +210,11 @@ test('updateCollectionItem updates item', async () => {
   assert.equal(res.statusCode, 200);
   assert.equal(res.payload.success, true);
   assert.equal(res.payload.data.item.title, 'Episode 2');
+  assert.equal(res.payload.data.item.video_title, 'Video 1');
+  assert.equal(
+    res.payload.data.item.thumbnail_url,
+    `http://localhost:3001/thumbnails/2025/01/${videoId}/thumbnail.jpg`
+  );
 
   const row = await db.get('SELECT title, sort_order FROM collection_items WHERE id = ?', [item.id]);
   assert.equal(row.title, 'Episode 2');

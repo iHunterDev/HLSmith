@@ -142,7 +142,16 @@ export default function CollectionDetailPage() {
           prev
             ? {
                 ...prev,
-                items: prev.items.map((item) => (item.id === editingItemId ? updated : item)),
+                items: prev.items.map((item) =>
+                  item.id === editingItemId
+                    ? {
+                        ...item,
+                        ...updated,
+                        video_title: updated.video_title ?? item.video_title,
+                        thumbnail_url: updated.thumbnail_url ?? item.thumbnail_url,
+                      }
+                    : item
+                ),
               }
             : prev
         );
@@ -157,7 +166,7 @@ export default function CollectionDetailPage() {
           available_until: availableUntilValue,
         });
         setDetail((prev) =>
-          prev ? { ...prev, items: [created, ...prev.items] } : prev
+          prev ? { ...prev, items: [...prev.items, created] } : prev
         );
         setItemMessage('创建成功');
       }
@@ -268,7 +277,7 @@ export default function CollectionDetailPage() {
                   </div>
                 </section>
 
-                <aside className="space-y-4">
+                <aside className="space-y-4 lg:sticky lg:top-0 lg:max-h-screen lg:overflow-auto">
                   <CollectionItemForm
                     title={itemTitle}
                     videoId={itemVideoId}

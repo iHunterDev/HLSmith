@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { DatabaseManager } from '../database/init';
 import { ResponseHelper } from '../utils/response';
+import { StorageUtils } from '../utils/storageUtils';
 
 const db = DatabaseManager.getInstance();
 
@@ -77,10 +78,38 @@ export async function createCollectionItem(req: Request, res: Response): Promise
     );
 
     const item = await db.get(
-      'SELECT id, collection_id, video_id, title, sort_order, available_from, available_until, created_at, updated_at FROM collection_items WHERE id = last_insert_rowid()'
+      `SELECT
+         ci.id,
+         ci.collection_id,
+         ci.video_id,
+         ci.title,
+         ci.sort_order,
+         ci.available_from,
+         ci.available_until,
+         ci.created_at,
+         ci.updated_at,
+         v.thumbnail_path,
+         v.title as video_title
+       FROM collection_items ci
+       LEFT JOIN videos v ON v.id = ci.video_id
+       WHERE ci.id = last_insert_rowid()`
     );
 
-    ResponseHelper.success(res, { item }, '集数创建成功', 201);
+    const responseItem = {
+      id: item.id,
+      collection_id: item.collection_id,
+      video_id: item.video_id,
+      title: item.title,
+      sort_order: item.sort_order,
+      available_from: item.available_from,
+      available_until: item.available_until,
+      created_at: item.created_at,
+      updated_at: item.updated_at,
+      thumbnail_url: StorageUtils.buildThumbnailUrl(item.thumbnail_path, req) ?? null,
+      video_title: item.video_title ?? null,
+    };
+
+    ResponseHelper.success(res, { item: responseItem }, '集数创建成功', 201);
   } catch (error) {
     console.error('Create collection item error:', error);
     ResponseHelper.internalError(res, '创建集数失败');
@@ -155,11 +184,39 @@ export async function updateCollectionItem(req: Request, res: Response): Promise
     );
 
     const item = await db.get(
-      'SELECT id, collection_id, video_id, title, sort_order, available_from, available_until, created_at, updated_at FROM collection_items WHERE id = ?',
+      `SELECT
+         ci.id,
+         ci.collection_id,
+         ci.video_id,
+         ci.title,
+         ci.sort_order,
+         ci.available_from,
+         ci.available_until,
+         ci.created_at,
+         ci.updated_at,
+         v.thumbnail_path,
+         v.title as video_title
+       FROM collection_items ci
+       LEFT JOIN videos v ON v.id = ci.video_id
+       WHERE ci.id = ?`,
       [itemId]
     );
 
-    ResponseHelper.success(res, { item }, '集数更新成功');
+    const responseItem = {
+      id: item.id,
+      collection_id: item.collection_id,
+      video_id: item.video_id,
+      title: item.title,
+      sort_order: item.sort_order,
+      available_from: item.available_from,
+      available_until: item.available_until,
+      created_at: item.created_at,
+      updated_at: item.updated_at,
+      thumbnail_url: StorageUtils.buildThumbnailUrl(item.thumbnail_path, req) ?? null,
+      video_title: item.video_title ?? null,
+    };
+
+    ResponseHelper.success(res, { item: responseItem }, '集数更新成功');
   } catch (error) {
     console.error('Update collection item error:', error);
     ResponseHelper.internalError(res, '更新集数失败');
